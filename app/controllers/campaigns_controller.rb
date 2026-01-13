@@ -1,31 +1,38 @@
 class CampaignsController < ApplicationController
+  before_action :authenticate_user!
+
   def index
-    #List campaigns
-    @campaigns = current_user.campaigns
+    @campaigns = current_user.campaigns.to_a
+    @campaign  = current_user.campaigns.new
   end
 
   def new
-    #New campaign
     @campaign = current_user.campaigns.build
   end
-
+  
   def create
-    #Check if user is premium
     if !current_user.can_create_campaign?
       redirect_to campaigns_path, alert: "Upgrade to create more campaigns."
       return
     end
-    #Create campaign
-    @campaign = current_user.campaigns.build(campaign_params)
+
+    @campaigns = current_user.campaigns.to_a
+    @campaign  = current_user.campaigns.new(campaign_params)
+
     if @campaign.save
-      redirect_to campaigns_path, notice: "Campaign created successfully: #{@campaign.name}"
+      redirect_to campaigns_path, notice: "Campaign created!"
     else
-      render :new, status: :unprocessable_entity
+      render :index, status: :unprocessable_entity
     end
   end
 
   def show
-    #Show campaign
     @campaign = current_user.campaigns.find(params[:id])
+  end
+
+  private
+
+  def campaign_params
+    params.require(:campaign).permit(:name)
   end
 end

@@ -1,4 +1,9 @@
 Rails.application.routes.draw do
+  get "characters/new"
+  get "characters/create"
+  get "characters/edit"
+  get "characters/update"
+  get "characters/destroy"
   get "campaigns/index"
   get "pages/home"
   get "home/index"
@@ -12,9 +17,11 @@ Rails.application.routes.draw do
       root to: "pages#home"
     end
   
-    resources :campaigns
+    
+    resources :campaigns, only: %i[index create show] do
+      resources :characters, only: %i[new create edit update destroy]
+    end
   
-
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

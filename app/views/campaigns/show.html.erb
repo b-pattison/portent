@@ -1,0 +1,42 @@
+<% if @campaign&.errors&.any? %>
+  <div id="error_explanation">
+    <h2><%= pluralize(@campaign.errors.count, "error") %> prohibited this campaign from being saved:</h2>
+    <ul>
+      <% @campaign.errors.each do |error| %>
+        <li><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+<h1><%= @campaign.name %></h1>
+
+<ul>
+  <% if @campaign.characters.empty? %>
+    No characters yet.
+  <% else %>
+    <% @campaign.characters.each do |character| %>
+        <li>
+
+        <% if character.avatar.attached? %>
+        <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
+        <% else %>
+        <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
+        <% end %>
+        <%= character.name %>
+        <%= character.initiative_mod %>
+
+        <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary" %>
+
+        <%= link_to "Delete",
+            campaign_character_path(@campaign, character),
+            data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
+            class: "btn btn-danger" %>
+        </li>
+    <% end %>
+  <% end %>
+</ul>
+
+
+<%= link_to "Add PC", new_campaign_character_path(@campaign), class: "btn btn-primary" %>
+
+

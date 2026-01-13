@@ -1,5 +1,6 @@
-<h1>Campaigns#index</h1>
-<% if @campaign.errors.any? %>
+<h1>Campaigns</h1>
+
+<% if @campaign&.errors&.any? %>
   <div id="error_explanation">
     <h2><%= pluralize(@campaign.errors.count, "error") %> prohibited this campaign from being saved:</h2>
     <ul>
@@ -11,24 +12,29 @@
 <% end %>
 
 <% if current_user.can_create_campaign? %>
-  #Show button to create new campaign
-  <%= link_to "New Campaign", new_campaign_path, class: "btn btn-primary" %>
-<% else %>
-  #Show alert message
-    <div class="alert alert-danger">
-        <%= flash[:alert] %>
+  <%# Inline create form (no /campaigns/new page needed) %>
+  <%= form_with model: @campaign, url: campaigns_path do |f| %>
+    <div>
+      <%= f.label :name, "Campaign name" %>
+      <%= f.text_field :name %>
     </div>
+
+    <%= f.submit "Create Campaign", class: "btn btn-primary" %>
+  <% end %>
+<% else %>
+  <div class="alert alert-danger">
+    <%= flash[:alert] || "Upgrade to create more campaigns." %>
+  </div>
 <% end %>
 
+<hr>
 
 <% if @campaigns.empty? %>
-  <p>No campaigns yet. <%= link_to "Create your first campaign", new_campaign_path %>!</p>
+  <p>No campaigns yet.</p>
 <% else %>
   <ul>
     <% @campaigns.each do |campaign| %>
-      <li>
-        <%= link_to campaign.name, campaign_path(campaign) %>
-      </li>
+      <li><%= link_to campaign.name, campaign_path(campaign) %></li>
     <% end %>
   </ul>
 <% end %>
