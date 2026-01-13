@@ -1,0 +1,34 @@
+<h1>Campaigns#index</h1>
+<% if @campaign.errors.any? %>
+  <div id="error_explanation">
+    <h2><%= pluralize(@campaign.errors.count, "error") %> prohibited this campaign from being saved:</h2>
+    <ul>
+      <% @campaign.errors.each do |error| %>
+        <li><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% if current_user.can_create_campaign? %>
+  #Show button to create new campaign
+  <%= link_to "New Campaign", new_campaign_path, class: "btn btn-primary" %>
+<% else %>
+  #Show alert message
+    <div class="alert alert-danger">
+        <%= flash[:alert] %>
+    </div>
+<% end %>
+
+
+<% if @campaigns.empty? %>
+  <p>No campaigns yet. <%= link_to "Create your first campaign", new_campaign_path %>!</p>
+<% else %>
+  <ul>
+    <% @campaigns.each do |campaign| %>
+      <li>
+        <%= link_to campaign.name, campaign_path(campaign) %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
