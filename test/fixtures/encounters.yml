@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  campaign: one
+  status: MyString
+  round_number: 1
+  active_participant_id: 1
+
+two:
+  campaign: two
+  status: MyString
+  round_number: 1
+  active_participant_id: 1

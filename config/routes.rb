@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get "encounters/show"
   get "characters/new"
   get "characters/create"
   get "characters/edit"
@@ -12,6 +13,8 @@ Rails.application.routes.draw do
     authenticated :user do
       root to: "campaigns#index", as: :authenticated_root
     end
+
+    
   
     unauthenticated :user do
       root to: "pages#home"
@@ -19,8 +22,13 @@ Rails.application.routes.draw do
   
     
     resources :campaigns, only: %i[index create show] do
+      member do
+        post :start_encounter  # or use 'post' if using button_to
+      end
       resources :characters, only: %i[new create edit update destroy]
+      resources :encounters, only: %i[show]
     end
+
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

@@ -7,6 +7,9 @@ class Character < ApplicationRecord
   has_one_attached :avatar
   validate :validate_avatar
 
+  scope :pcs,  -> { where(pc: true) }
+  scope :npcs, -> { where(pc: false) }
+
 private
 
   def validate_avatar

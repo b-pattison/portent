@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  encounter: one
+  character: one
+  initiative_roll: 1
+  initiative_mod: 1
+  initiative_total: 1
+  state: MyString
+
+two:
+  encounter: two
+  character: two
+  initiative_roll: 1
+  initiative_mod: 1
+  initiative_total: 1
+  state: MyString

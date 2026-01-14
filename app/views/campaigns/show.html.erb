@@ -8,7 +8,10 @@
     </ul>
   </div>
 <% end %>
+
 <h1><%= @campaign.name %></h1>
+<% link_to "Start New Encounter", start_encounter(@campaign), class: "btn btn-primary" %>
+<% end %>
 
 <ul>
   <% if @campaign.characters.empty? %>
@@ -34,6 +37,7 @@
         </li>
     <% end %>
   <% end %>
+
 </ul>
 
 

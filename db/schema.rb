@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_13_171503) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_13_220540) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,7 +56,33 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_13_171503) do
     t.integer "initiative_mod", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "pc", default: true, null: false
     t.index ["campaign_id"], name: "index_characters_on_campaign_id"
+  end
+
+  create_table "encounter_participants", force: :cascade do |t|
+    t.bigint "encounter_id", null: false
+    t.bigint "character_id", null: false
+    t.integer "initiative_roll"
+    t.integer "initiative_mod"
+    t.integer "initiative_total"
+    t.string "state", default: "alive", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_encounter_participants_on_character_id"
+    t.index ["encounter_id", "character_id"], name: "index_encounter_participants_on_encounter_id_and_character_id", unique: true
+    t.index ["encounter_id"], name: "index_encounter_participants_on_encounter_id"
+  end
+
+  create_table "encounters", force: :cascade do |t|
+    t.bigint "campaign_id", null: false
+    t.string "status", default: "setup", null: false
+    t.integer "round_number", default: 1, null: false
+    t.bigint "active_participant_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active_participant_id"], name: "index_encounters_on_active_participant_id"
+    t.index ["campaign_id"], name: "index_encounters_on_campaign_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -75,4 +101,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_13_171503) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaigns", "users"
   add_foreign_key "characters", "campaigns"
+  add_foreign_key "encounter_participants", "characters"
+  add_foreign_key "encounter_participants", "encounters"
+  add_foreign_key "encounters", "campaigns"
 end
