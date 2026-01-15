@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_13_220540) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_15_030952) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,7 +57,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_13_220540) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "pc", default: true, null: false
+    t.boolean "temporary", default: false, null: false
     t.index ["campaign_id"], name: "index_characters_on_campaign_id"
+  end
+
+  create_table "encounter_effect_targets", force: :cascade do |t|
+    t.bigint "encounter_effect_id", null: false
+    t.bigint "encounter_participant_id", null: false
+    t.integer "trigger_timing", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "ended_at"
+    t.datetime "last_prompted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_effect_id", "encounter_participant_id"], name: "idx_effect_target_uniqueness", unique: true
+    t.index ["encounter_effect_id"], name: "index_encounter_effect_targets_on_encounter_effect_id"
+    t.index ["encounter_participant_id"], name: "index_encounter_effect_targets_on_encounter_participant_id"
+  end
+
+  create_table "encounter_effects", force: :cascade do |t|
+    t.bigint "encounter_id", null: false
+    t.string "name", default: "Effect", null: false
+    t.text "note"
+    t.integer "duration_type", default: 0, null: false
+    t.integer "duration_rounds"
+    t.integer "expires_on_round"
+    t.bigint "expires_on_participant_id"
+    t.integer "save_ability"
+    t.integer "hp_delta", default: 0, null: false
+    t.datetime "ended_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_id"], name: "index_encounter_effects_on_encounter_id"
+    t.index ["ended_at"], name: "index_encounter_effects_on_ended_at"
+    t.index ["expires_on_participant_id"], name: "index_encounter_effects_on_expires_on_participant_id"
   end
 
   create_table "encounter_participants", force: :cascade do |t|
@@ -69,6 +102,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_13_220540) do
     t.string "state", default: "alive", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "added_in_round"
     t.index ["character_id"], name: "index_encounter_participants_on_character_id"
     t.index ["encounter_id", "character_id"], name: "index_encounter_participants_on_encounter_id_and_character_id", unique: true
     t.index ["encounter_id"], name: "index_encounter_participants_on_encounter_id"
@@ -101,6 +135,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_13_220540) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaigns", "users"
   add_foreign_key "characters", "campaigns"
+  add_foreign_key "encounter_effect_targets", "encounter_effects"
+  add_foreign_key "encounter_effect_targets", "encounter_participants"
+  add_foreign_key "encounter_effects", "encounter_participants", column: "expires_on_participant_id"
+  add_foreign_key "encounter_effects", "encounters"
   add_foreign_key "encounter_participants", "characters"
   add_foreign_key "encounter_participants", "encounters"
   add_foreign_key "encounters", "campaigns"

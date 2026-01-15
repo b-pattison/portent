@@ -10,14 +10,40 @@
 <% end %>
 
 <h1><%= @campaign.name %></h1>
-<% link_to "Start New Encounter", start_encounter(@campaign), class: "btn btn-primary" %>
+
+<h2>Encounters</h2>
+<% if @active_encounter %>
+  <p>
+    <strong>Active Encounter:</strong>
+    <%= link_to "View Active Encounter", campaign_encounter_path(@campaign, @active_encounter), class: "btn btn-primary" %>
+    (Started <%= @active_encounter.created_at.strftime("%B %d, %Y at %I:%M %p") %>)
+  </p>
+<% else %>
+  <%= button_to "Start New Encounter",
+                start_encounter_campaign_path(@campaign),
+                method: :post,
+                class: "btn btn-primary" %>
 <% end %>
 
+<% if @past_encounters.any? %>
+  <h3>Past Encounters</h3>
+  <ul>
+    <% @past_encounters.each do |encounter| %>
+      <li>
+        <%= link_to "Encounter from #{encounter.created_at.strftime("%B %d, %Y at %I:%M %p")}", 
+                    campaign_encounter_path(@campaign, encounter) %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<h2>Player Characters</h2>
 <ul>
-  <% if @campaign.characters.empty? %>
-    No characters yet.
+  <% pcs = @campaign.characters.pcs.permanent %>
+  <% if pcs.empty? %>
+    No PCs yet.
   <% else %>
-    <% @campaign.characters.each do |character| %>
+    <% pcs.each do |character| %>
         <li>
 
         <% if character.avatar.attached? %>
@@ -40,7 +66,35 @@
 
 </ul>
 
-
 <%= link_to "Add PC", new_campaign_character_path(@campaign), class: "btn btn-primary" %>
+
+<h2>NPCs</h2>
+<ul>
+  <% npcs = @campaign.characters.npcs.permanent %>
+  <% if npcs.empty? %>
+    No NPCs yet.
+  <% else %>
+    <% npcs.each do |character| %>
+        <li>
+
+        <% if character.avatar.attached? %>
+        <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
+        <% else %>
+        <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
+        <% end %>
+        <%= character.name %>
+        <%= character.initiative_mod %>
+
+        <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary" %>
+
+        <%= link_to "Delete",
+            campaign_character_path(@campaign, character),
+            data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
+            class: "btn btn-danger" %>
+        </li>
+    <% end %>
+  <% end %>
+
+</ul>
 
 

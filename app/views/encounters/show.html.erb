@@ -1,2 +1,561 @@
-<h1>Encounters#show</h1>
-<p>Find me in app/views/encounters/show.html.erb</p>
+
+<h1>Encounter <%= @encounter.status == "active" ? "Running" : "Setup" %></h1>
+
+<p>
+  Status: <strong><%= @encounter.status %></strong>
+  <% if @encounter.status == "active" && @encounter.active_participant.present? %>
+    — Up next: <strong><%= @encounter.active_participant.character.name %></strong>
+  <% end %>
+</p>
+
+<% ended = (@encounter.status == "ended") %>
+
+<% if @encounter.status == "active" %>
+  <%# Show combat console when active (can be toggled with form) %>
+  <div id="combat-console-wrapper">
+    <div
+      id="combat-console-root"
+      data-campaign-id="<%= @campaign.id %>"
+      data-encounter-id="<%= @encounter.id %>"
+      data-csrf-token="<%= form_authenticity_token %>"
+    >
+      <p>Loading combat console…</p>
+    </div>
+  </div>
+
+  <%# Add combatant form (hidden by default) %>
+  <div id="add-combatant-form-wrapper" style="display: none;">
+    <h2>Add NPC/Enemy</h2>
+    <p style="margin-bottom: 1rem; opacity: 0.7;">
+      Combatant will be added at the end of the current round.
+    </p>
+    <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), 
+                  method: :post, 
+                  id: "add-combatant-form-active",
+                  data: { turbo: false },
+                  multipart: true,
+                  onsubmit: "return handleAddCombatantSubmit(event)" do %>
+      <%= label_tag "character[name]", "Name" %>
+      <%= text_field_tag "character[name]", nil, required: true %>
+
+      <%= label_tag "character[initiative_mod]", "Initiative mod" %>
+      <%= number_field_tag "character[initiative_mod]", 0, required: true %>
+
+      <%= label_tag "character[initiative_roll]", "Initiative roll" %>
+      <%= number_field_tag "character[initiative_roll]", nil, min: 1, max: 30, step: 1, required: true %>
+
+      <div style="margin-top: 1rem;">
+        <%= label_tag "character[avatar]", "Avatar (optional)" %>
+        <%= file_field_tag "character[avatar]", 
+                          accept: "image/png,image/jpeg,image/jpg",
+                          style: "margin-top: 0.25rem;" %>
+        <small style="display: block; opacity: 0.7; margin-top: 0.25rem;">
+          PNG or JPG, max 2MB. If not provided, default avatar will be used.
+        </small>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <%= submit_tag "Add Combatant", class: "btn btn-primary" %>
+        <button type="button" class="btn btn-secondary" onclick="cancelAddCombatant()" style="margin-left: 0.5rem;">
+          Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Add Effect form (hidden by default) %>
+  <div id="add-effect-form-wrapper" style="display: none;">
+    <h2>Add Effect</h2>
+    <%= form_with url: effects_campaign_encounter_path(@campaign, @encounter),
+                  method: :post,
+                  id: "add-effect-form",
+                  data: { turbo: false } do %>
+      <%= label_tag "effect[name]", "Effect Name" %>
+      <%= text_field_tag "effect[name]", nil, required: true %>
+
+      <%= label_tag "effect[note]", "Note (optional)" %>
+      <%= text_area_tag "effect[note]", nil, rows: 2 %>
+
+      <div style="margin-top: 1rem;">
+        <strong>Duration:</strong>
+        <div style="margin-top: 0.5rem;">
+          <%= radio_button_tag "duration_type", "end_of_round", true, id: "duration_end_of_round", onchange: "updateDurationFields()" %>
+          <%= label_tag "duration_end_of_round", "End of round" %>
+        </div>
+        <div>
+          <%= radio_button_tag "duration_type", "end_of_turn", false, id: "duration_end_of_turn", onchange: "updateDurationFields()" %>
+          <%= label_tag "duration_end_of_turn" do %>
+            End of character's next turn
+            <% if @encounter.active_participant.present? %>
+              <span style="opacity: 0.7; font-weight: normal;">
+                (<%= @encounter.active_participant.character.name %>'s turn in round <%= @encounter.round_number + 1 %>)
+              </span>
+            <% else %>
+              <span style="opacity: 0.7; font-weight: normal;">
+                (Current active participant's next turn)
+              </span>
+            <% end %>
+          <% end %>
+        </div>
+        <div>
+          <%= radio_button_tag "duration_type", "time", false, id: "duration_time", onchange: "updateDurationFields()" %>
+          <%= label_tag "duration_time", "Time" %>
+          <div id="time_duration_wrapper" style="display: none; margin-left: 2rem; margin-top: 0.5rem;">
+            <%= number_field_tag "time_amount", nil, min: 1, style: "width: 80px;" %>
+            <%= select_tag "time_unit", options_for_select([["Seconds", "seconds"], ["Minutes", "minutes"]], "seconds") %>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <strong>Who it affects:</strong>
+        <div id="targets_wrapper" style="margin-top: 0.5rem;">
+          <% @encounter.encounter_participants.where.not(state: ["removed", "dead"]).includes(:character).each do |participant| %>
+            <div style="margin: 0.5rem 0;">
+              <%= check_box_tag "target_ids[]", participant.id, false, 
+                                id: "target_#{participant.id}",
+                                onchange: "updateTargetTiming(#{participant.id})" %>
+              <%= label_tag "target_#{participant.id}", participant.character.name %>
+              <div id="target_timing_<%= participant.id %>" style="display: none; margin-left: 2rem; margin-top: 0.25rem;">
+                <%= select_tag "target_timings[#{participant.id}]",
+                              options_for_select([["None", "none"], ["Start of turn", "start_of_turn"], ["End of turn", "end_of_turn"]], "start_of_turn"),
+                              onchange: "updateSaveTypeVisibility()" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div style="margin-top: 1rem;" id="save_ability_wrapper">
+        <%= label_tag "effect[save_ability]", "Save Type (optional)" %>
+        <%= select_tag "effect[save_ability]",
+                      options_for_select([
+                        ["None", ""],
+                        ["Wisdom", "wis"],
+                        ["Intelligence", "int"],
+                        ["Strength", "str"],
+                        ["Constitution", "con"],
+                        ["Dexterity", "dex"]
+                      ], ""),
+                      { id: "save_ability_select" } %>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <%= label_tag "effect[hp_delta]", "HP Effect" %>
+        <%= number_field_tag "effect[hp_delta]", 0, required: true %>
+        <small style="display: block; opacity: 0.7; margin-top: 0.25rem;">
+          Negative = damage, positive = healing
+        </small>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <%= submit_tag "Add Effect", class: "btn btn-primary" %>
+        <button type="button" class="btn btn-secondary" onclick="cancelAddEffect()" style="margin-left: 0.5rem;">
+          Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <%= vite_javascript_tag "entrypoints/encounters/run.jsx" %>
+<% else %>
+  <%# Setup form (disabled/locked when ended) %>
+
+  <% if ended %>
+    <div class="alert alert-info" style="margin-bottom: 1rem;">
+      This encounter has ended. Setup actions are locked.
+    </div>
+  <% end %>
+
+<%= form_with url: update_rolls_campaign_encounter_path(@campaign, @encounter),
+              method: :patch,
+              data: { turbo: false } do %>
+    <div style="margin-bottom: 1rem;">
+      <%= check_box_tag "show_removed",
+                        "1",
+                        false,
+                        id: "show_removed_checkbox",
+                        onchange: "toggleRemovedCombatants()",
+                        disabled: ended %>
+      <%= label_tag "show_removed_checkbox", "Show removed combatants" %>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Roll</th>
+          <th>Mod</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody id="active_combatants">
+        <% @participants.select { |p| p.state != "removed" }.each do |p| %>
+          <% character = p.character %>
+          <tr>
+            <td><%= character.name %></td>
+            <td><%= character.pc? ? "Player Character" : "NPC" %></td>
+
+            <td>
+              <%= number_field_tag "participants[#{p.id}][initiative_roll]",
+                                   p.initiative_roll,
+                                   min: 1, max: 30, step: 1,
+                                   disabled: ended %>
+            </td>
+
+            <td><%= p.initiative_mod %></td>
+            <td><%= p.initiative_total || "—" %></td>
+
+            <td>
+              <% unless ended %>
+                <% if p.state == "alive" %>
+                  <button type="button"
+                          class="btn btn-danger"
+                          onclick="markDead(<%= p.id %>)"
+                          data-participant-id="<%= p.id %>">
+                    Mark Dead
+                  </button>
+                <% end %>
+
+                <%= link_to "Remove",
+                            remove_campaign_encounter_encounter_participant_path(@campaign, @encounter, p),
+                            data: { turbo_method: :patch, turbo_confirm: "Remove this combatant from the encounter?" },
+                            class: "btn btn-danger" %>
+              <% else %>
+                <span style="opacity: 0.6;">Locked</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+
+      <tbody id="removed_combatants" style="display: none;">
+        <% @participants.select { |p| p.state == "removed" }.each do |p| %>
+          <% character = p.character %>
+          <tr style="opacity: 0.5;">
+            <td><%= character.name %></td>
+            <td><%= character.pc? ? "PC" : "NPC" %></td>
+
+            <td>
+              <%= number_field_tag "participants[#{p.id}][initiative_roll]",
+                                   p.initiative_roll,
+                                   min: 1, max: 30, step: 1,
+                                   disabled: true %>
+            </td>
+
+            <td><%= p.initiative_mod %></td>
+            <td><%= p.initiative_total || "—" %></td>
+
+            <td>
+              <% unless ended %>
+                <%= link_to "Re-add",
+                            restore_campaign_encounter_encounter_participant_path(@campaign, @encounter, p),
+                            data: { turbo_method: :patch },
+                            class: "btn btn-secondary" %>
+              <% else %>
+                <span style="opacity: 0.6;">Locked</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% unless ended %>
+      <div style="margin-top: 1rem;">
+        <%= submit_tag(@missing_rolls ? "Save initiative rolls" : "Save & Activate",
+                       class: "btn btn-primary") %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>
+
+<hr>
+
+<% unless ended %>
+  <% if @encounter.status != "active" %>
+    <%# Show form directly for setup mode %>
+    <h2>Add NPC/Enemy</h2>
+
+    <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), method: :post do %>
+      <%= label_tag "character[name]", "Name" %>
+      <%= text_field_tag "character[name]" %>
+
+      <%= label_tag "character[initiative_mod]", "Initiative mod" %>
+      <%= number_field_tag "character[initiative_mod]", 0 %>
+
+      <%= submit_tag "Add", class: "btn btn-secondary" %>
+    <% end %>
+  <% else %>
+    <%# Button to show form for active encounters %>
+    <div style="margin-top: 1rem;">
+      <button type="button" 
+              class="btn btn-secondary" 
+              onclick="showAddCombatantForm()"
+              id="show-add-combatant-btn">
+        Add NPC/Enemy
+      </button>
+      <button type="button" 
+              class="btn btn-secondary" 
+              onclick="showAddEffectForm()"
+              id="show-add-effect-btn"
+              style="margin-left: 0.5rem;">
+        Add Effect
+      </button>
+    </div>
+  <% end %>
+
+  <div style="margin-top: 1rem;">
+    <%= button_to "End Encounter",
+                  end_encounter_campaign_encounter_path(@campaign, @encounter),
+                  method: :patch,
+                  data: { turbo_confirm: "End this encounter?", turbo_frame: "_top" },
+                  class: "btn btn-danger" %>
+  </div>
+
+  <div style="margin-top: 1rem;">
+    <button type="button"
+            class="btn btn-primary"
+            onclick="advanceTurn()">
+      Advance Turn
+    </button>
+  </div>
+<% else %>
+  <div class="alert alert-info" style="margin-top: 1rem;">
+    Encounter ended — actions are disabled.
+  </div>
+<% end %>
+
+<script>
+  function toggleRemovedCombatants() {
+    const checkbox = document.getElementById('show_removed_checkbox');
+    const removedSection = document.getElementById('removed_combatants');
+    if (!checkbox || !removedSection) return;
+
+    removedSection.style.display = checkbox.checked ? '' : 'none';
+  }
+
+  function getCSRFToken() {
+    const el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.content : '';
+  }
+
+  function advanceTurn() {
+    // Don't try to advance if the button is hidden/locked, but guard anyway:
+    const url = '<%= advance_turn_campaign_encounter_path(@campaign, @encounter) %>';
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCSRFToken(),
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => window.location.reload())
+    .catch(error => console.error('Error advancing turn:', error));
+  }
+
+  function markDead(participantId) {
+    const urlTemplate = '<%= campaign_encounter_encounter_participant_path(@campaign, @encounter, "PARTICIPANT_ID") %>';
+    const url = urlTemplate.replace("PARTICIPANT_ID", participantId);
+
+    fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCSRFToken(),
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        encounter_participant: { state: 'dead' }
+      })
+    })
+    .then(response => response.json())
+    .then(data => window.location.reload())
+    .catch(error => console.error('Error marking dead:', error));
+  }
+
+  <% if @encounter.status == "active" %>
+    // Store current encounter state when entering add mode
+    let savedEncounterState = null;
+
+    function showAddCombatantForm() {
+      // Save current state
+      savedEncounterState = {
+        activeParticipantId: <%= @encounter.active_participant_id || 'null' %>,
+        roundNumber: <%= @encounter.round_number || 1 %>,
+        status: '<%= @encounter.status %>'
+      };
+      console.log('Saved encounter state:', savedEncounterState);
+
+      // Hide console, show form
+      const consoleWrapper = document.getElementById('combat-console-wrapper');
+      const formWrapper = document.getElementById('add-combatant-form-wrapper');
+      const showBtn = document.getElementById('show-add-combatant-btn');
+
+      if (consoleWrapper) consoleWrapper.style.display = 'none';
+      if (formWrapper) formWrapper.style.display = 'block';
+      if (showBtn) showBtn.style.display = 'none';
+    }
+
+    function cancelAddCombatant() {
+      // Restore console, hide form
+      const consoleWrapper = document.getElementById('combat-console-wrapper');
+      const formWrapper = document.getElementById('add-combatant-form-wrapper');
+      const showBtn = document.getElementById('show-add-combatant-btn');
+
+      if (consoleWrapper) consoleWrapper.style.display = 'block';
+      if (formWrapper) formWrapper.style.display = 'none';
+      if (showBtn) showBtn.style.display = 'block';
+
+      // Clear saved state
+      savedEncounterState = null;
+    }
+
+  function handleAddCombatantSubmit(event) {
+    // Form will submit normally, but we want to show console after redirect
+    // The redirect will happen on the server side
+    return true;
+  }
+
+  function showAddEffectForm() {
+    const consoleWrapper = document.getElementById('combat-console-wrapper');
+    const formWrapper = document.getElementById('add-effect-form-wrapper');
+    const showBtn = document.getElementById('show-add-effect-btn');
+    const form = document.getElementById('add-effect-form');
+
+    if (consoleWrapper) consoleWrapper.style.display = 'none';
+    if (formWrapper) formWrapper.style.display = 'block';
+    if (showBtn) showBtn.style.display = 'none';
+    
+    // Ensure event listener is attached
+    if (form) {
+      form.addEventListener('submit', handleAddEffectSubmit, { once: false });
+    }
+  }
+
+  function cancelAddEffect() {
+    const consoleWrapper = document.getElementById('combat-console-wrapper');
+    const formWrapper = document.getElementById('add-effect-form-wrapper');
+    const showBtn = document.getElementById('show-add-effect-btn');
+
+    if (consoleWrapper) consoleWrapper.style.display = 'block';
+    if (formWrapper) formWrapper.style.display = 'none';
+    if (showBtn) showBtn.style.display = 'block';
+  }
+
+  function updateDurationFields() {
+    const time = document.getElementById('duration_time').checked;
+    document.getElementById('time_duration_wrapper').style.display = time ? 'block' : 'none';
+  }
+
+  function updateTargetTiming(participantId) {
+    const checkbox = document.getElementById('target_' + participantId);
+    const timingDiv = document.getElementById('target_timing_' + participantId);
+    if (timingDiv) {
+      timingDiv.style.display = checkbox.checked ? 'block' : 'none';
+      if (checkbox.checked) {
+        updateSaveTypeVisibility();
+      }
+    }
+  }
+
+  function updateSaveTypeVisibility() {
+    const saveTypeWrapper = document.getElementById('save_ability_wrapper');
+    
+    if (!saveTypeWrapper) return;
+    
+    // Check all target timing selects
+    const allTimingSelects = document.querySelectorAll('[id^="target_timing_"]');
+    let hasCheckedTarget = false;
+    let allSelectedNone = true;
+    
+    allTimingSelects.forEach(select => {
+      const checkboxId = select.id.replace('target_timing_', 'target_');
+      const checkbox = document.getElementById(checkboxId);
+        if (checkbox && checkbox.checked) {
+          hasCheckedTarget = true;
+          if (select.value !== 'no_trigger') {
+            allSelectedNone = false;
+          }
+        }
+    });
+    
+    // Hide save type if all checked targets have "none" timing
+    // Show it if at least one checked target has "start_of_turn" or "end_of_turn"
+        if (hasCheckedTarget && allSelectedNone) {
+          // At least one target has a non-none timing
+      saveTypeWrapper.style.display = 'none';
+      // Clear save ability selection
+      const saveTypeSelect = document.getElementById('save_ability_select');
+      if (saveTypeSelect) saveTypeSelect.value = '';
+    } else {
+      saveTypeWrapper.style.display = 'block';
+    }
+  }
+
+  function handleAddEffectSubmit(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const url = form.action;
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': getCSRFToken(),
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.errors ? data.errors.join(', ') : 'Failed to add effect');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Hide form, show console, and reload page to see the effect
+        cancelAddEffect();
+        window.location.reload();
+      } else {
+        alert('Error: ' + (data.errors ? data.errors.join(', ') : 'Failed to add effect'));
+      }
+    })
+    .catch(error => {
+      console.error('Error adding effect:', error);
+      alert('Error adding effect: ' + error.message);
+    });
+
+    return false;
+  }
+
+  // Attach event listener when DOM is ready (for initial load)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('add-effect-form');
+      if (form) {
+        form.addEventListener('submit', handleAddEffectSubmit);
+      }
+    });
+  } else {
+    // DOM already loaded
+    const form = document.getElementById('add-effect-form');
+    if (form) {
+      form.addEventListener('submit', handleAddEffectSubmit);
+    }
+  }
+<% end %>
+</script>

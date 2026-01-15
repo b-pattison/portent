@@ -10,7 +10,6 @@ class EncounterParticipant < ApplicationRecord
   private
 
   def snapshot_and_total
-    self.name ||= character.name
     self.initiative_mod ||= character.initiative_mod
     if initiative_roll.present? && initiative_mod.present?
       self.initiative_total ||= initiative_roll + initiative_mod

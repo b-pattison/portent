@@ -1,0 +1,10 @@
+<div
+  id="combat-console-root"
+  data-campaign-id="<%= @campaign.id %>"
+  data-encounter-id="<%= @encounter.id %>"
+  data-csrf-token="<%= form_authenticity_token %>"
+>
+<p>Loading combat console…</p>
+</div>
+
+<%= vite_javascript_tag "entrypoints/encounters/run.jsx" %>

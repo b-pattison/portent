@@ -29,16 +29,36 @@ class CampaignsController < ApplicationController
 
   def show
     @campaign = current_user.campaigns.find(params[:id])
+    @active_encounter = @campaign.encounters.active.first
+    @past_encounters = @campaign.encounters.ended.order(created_at: :desc)
   end
 
   def start_encounter
     @campaign = current_user.campaigns.find(params[:id])
-    @encounter = @campaign.encounters.create(status: "setup")
-    @campaign.characters.pcs.each do |character|
-      @encounter.encounter_participants.create(character: character, state: "alive")
+  
+    if @campaign.encounters.active.exists?
+      redirect_to campaign_path(@campaign), 
+                  alert: "You must end the current active encounter before starting a new one."
+      return
     end
-    redirect_to encounter_path(@campaign, @encounter), notice: "Encounter started!"
+  
+    @encounter = @campaign.encounters.create!(
+      status: "setup",
+      round_number: 1
+    )
+  
+    @campaign.characters.pcs.permanent.each do |character|
+      @encounter.encounter_participants.create!(
+        character: character,
+        initiative_mod: character.initiative_mod,
+        state: "alive"
+      )
+    end
+  
+    redirect_to campaign_encounter_path(@campaign, @encounter),
+                notice: "Encounter started! Enter initiative rolls to begin."
   end
+  
 
   private
 
@@ -52,5 +72,5 @@ class CampaignsController < ApplicationController
       redirect_to campaign_path(@campaign), alert: "You need to add at least one PC to start an encounter."
     end
   end
-  
+
 end

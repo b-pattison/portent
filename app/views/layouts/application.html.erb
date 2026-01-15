@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+  
     <p class="notice"><%= notice %></p>
     <p class="alert"><%= alert %></p>
     <title><%= content_for(:title) || "Portent" %></title>
@@ -22,6 +23,8 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <%= vite_client_tag %>
+    <%= yield :vite %>
   </head>
 
   <body>

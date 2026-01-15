@@ -1,0 +1,54 @@
+class EffectTargetsController < ApplicationController
+  before_action :authenticate_user!
+  before_action :set_campaign
+  before_action :set_encounter
+  before_action :set_target
+  before_action :ensure_not_ended
+
+  def resolve
+    effect = @target.encounter_effect
+    participant = @target.encounter_participant
+
+    passed = params[:passed] == true || params[:passed] == "true"
+    requires_save = effect.save_ability.present?
+
+    # Apply HP effect if save failed (or if no save required)
+    if !requires_save || !passed
+      # Apply hp_delta (negative = damage, positive = healing)
+      # Note: This assumes characters have an hp field - you may need to adjust
+      # For MVP, we'll just track it conceptually
+      if effect.hp_delta != 0
+        # TODO: Apply HP change to character/participant
+        # For now, we'll just mark that it was applied
+      end
+    end
+
+    # If save passed, end this target
+    if passed && requires_save
+      @target.end!
+    end
+
+    render json: { success: true }, status: :ok
+  end
+
+  private
+
+  def set_campaign
+    @campaign = current_user.campaigns.find(params[:campaign_id])
+  end
+
+  def set_encounter
+    @encounter = @campaign.encounters.find(params[:id])
+  end
+
+  def set_target
+    @target = EncounterEffectTarget.find(params[:target_id])
+    unless @target.encounter_effect.encounter_id == @encounter.id
+      render json: { error: "Target not found" }, status: :not_found
+    end
+  end
+
+  def ensure_not_ended
+    redirect_to [@campaign, @encounter], alert: "That encounter has ended." if @encounter.status == "ended"
+  end
+end
