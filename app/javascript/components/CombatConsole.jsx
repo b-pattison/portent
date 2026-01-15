@@ -193,6 +193,15 @@ export default function CombatConsole({ boot }) {
       return;
     }
 
+    if (interrupt.notification_only) {
+      setInterrupt(null);
+      let done = false;
+      while (!done) {
+        done = await advanceTurnInternal();
+      }
+      return;
+    }
+
     const url = `/campaigns/${boot.campaignId}/encounters/${boot.encounterId}/effect_targets/${interrupt.target_id}/resolve`;
 
     try {
@@ -211,9 +220,7 @@ export default function CombatConsole({ boot }) {
         throw new Error(`Failed to resolve interrupt: ${response.status}`);
       }
 
-      // Clear interrupt and continue advancing
       setInterrupt(null);
-      // Re-call advance_turn until status=ok
       let done = false;
       while (!done) {
         done = await advanceTurnInternal();
@@ -1250,7 +1257,7 @@ export default function CombatConsole({ boot }) {
                 textAlign: "center",
               }}
             >
-              Save Required
+              {interrupt.notification_only ? "Effect Active" : "Save Required"}
             </h3>
             <p
               style={{
@@ -1261,14 +1268,23 @@ export default function CombatConsole({ boot }) {
                 textAlign: "center",
               }}
             >
-              <strong style={{ color: colors.lavender }}>{interrupt.participant_name}</strong> must
-              make a{" "}
-              <strong style={{ color: colors.gold }}>
-                {interrupt.save_ability
-                  ? String(interrupt.save_ability).toUpperCase()
-                  : "UNKNOWN"}
-              </strong>{" "}
-              save against <strong style={{ color: colors.lavender }}>{interrupt.effect_name}</strong>.
+              {interrupt.notification_only ? (
+                <>
+                  <strong style={{ color: colors.lavender }}>{interrupt.participant_name}</strong> is
+                  affected by <strong style={{ color: colors.lavender }}>{interrupt.effect_name}</strong>.
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: colors.lavender }}>{interrupt.participant_name}</strong> must
+                  make a{" "}
+                  <strong style={{ color: colors.gold }}>
+                    {interrupt.save_ability
+                      ? String(interrupt.save_ability).toUpperCase()
+                      : "UNKNOWN"}
+                  </strong>{" "}
+                  save against <strong style={{ color: colors.lavender }}>{interrupt.effect_name}</strong>.
+                </>
+              )}
             </p>
             <div
               style={{
@@ -1278,68 +1294,103 @@ export default function CombatConsole({ boot }) {
                 flexWrap: "wrap",
               }}
             >
-              <button
-                type="button"
-                onClick={() => resolveInterrupt(true)}
-                style={{
-                  flex: 1,
-                  minWidth: "120px",
-                  padding: "14px 20px",
-                  fontSize: "clamp(14px, 3.5vw, 16px)",
-                  backgroundColor: "#28a745",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  minHeight: "48px",
-                  boxShadow: "0 4px 12px rgba(40, 167, 69, 0.3)",
-                  transition: "all 0.2s",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#218838";
-                  e.target.style.transform = "translateY(-2px)";
-                  e.target.style.boxShadow = "0 6px 16px rgba(40, 167, 69, 0.4)";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#28a745";
-                  e.target.style.transform = "translateY(0)";
-                  e.target.style.boxShadow = "0 4px 12px rgba(40, 167, 69, 0.3)";
-                }}
-              >
-                Passed
-              </button>
-              <button
-                type="button"
-                onClick={() => resolveInterrupt(false)}
-                style={{
-                  flex: 1,
-                  minWidth: "120px",
-                  padding: "14px 20px",
-                  fontSize: "clamp(14px, 3.5vw, 16px)",
-                  backgroundColor: "#dc3545",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  minHeight: "48px",
-                  boxShadow: "0 4px 12px rgba(220, 53, 69, 0.3)",
-                  transition: "all 0.2s",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#c82333";
-                  e.target.style.transform = "translateY(-2px)";
-                  e.target.style.boxShadow = "0 6px 16px rgba(220, 53, 69, 0.4)";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#dc3545";
-                  e.target.style.transform = "translateY(0)";
-                  e.target.style.boxShadow = "0 4px 12px rgba(220, 53, 69, 0.3)";
-                }}
-              >
-                Failed
-              </button>
+              {interrupt.notification_only ? (
+                <button
+                  type="button"
+                  onClick={() => resolveInterrupt(null)}
+                  style={{
+                    width: "100%",
+                    padding: "14px 20px",
+                    fontSize: "clamp(14px, 3.5vw, 16px)",
+                    backgroundColor: colors.gold,
+                    color: colors.deepBlue,
+                    border: "none",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    minHeight: "48px",
+                    boxShadow: `0 4px 20px rgba(212, 175, 55, 0.4)`,
+                    transition: "all 0.2s",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = colors.lightGold;
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow = `0 6px 24px rgba(212, 175, 55, 0.5)`;
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = colors.gold;
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = `0 4px 20px rgba(212, 175, 55, 0.4)`;
+                  }}
+                >
+                  OK
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => resolveInterrupt(true)}
+                    style={{
+                      flex: 1,
+                      minWidth: "120px",
+                      padding: "14px 20px",
+                      fontSize: "clamp(14px, 3.5vw, 16px)",
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 12,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      minHeight: "48px",
+                      boxShadow: "0 4px 12px rgba(40, 167, 69, 0.3)",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = "#218838";
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 6px 16px rgba(40, 167, 69, 0.4)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = "#28a745";
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 4px 12px rgba(40, 167, 69, 0.3)";
+                    }}
+                  >
+                    Passed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolveInterrupt(false)}
+                    style={{
+                      flex: 1,
+                      minWidth: "120px",
+                      padding: "14px 20px",
+                      fontSize: "clamp(14px, 3.5vw, 16px)",
+                      backgroundColor: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 12,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      minHeight: "48px",
+                      boxShadow: "0 4px 12px rgba(220, 53, 69, 0.3)",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = "#c82333";
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 6px 16px rgba(220, 53, 69, 0.4)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = "#dc3545";
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 4px 12px rgba(220, 53, 69, 0.3)";
+                    }}
+                  >
+                    Failed
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -145,6 +145,13 @@ module Encounters
           }
         else
           apply_hp_effect(effect, participant)
+          return {
+            target_id: target.id,
+            effect_name: effect.name,
+            save_ability: nil,
+            participant_name: participant.character.name,
+            notification_only: true
+          }
         end
       end
 
@@ -153,14 +160,17 @@ module Encounters
 
     def check_and_end_round_effects(new_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
-        if effect.duration_type == "end_of_round" && effect.expires_on_round == new_round
+        effect.reload
+        if effect.duration_type == "end_of_round" && effect.expires_on_round && new_round > effect.expires_on_round
           effect.end!
         elsif effect.duration_type == "time"
-          effect.duration_rounds -= 1
-          if effect.duration_rounds <= 0
-            effect.end!
-          else
-            effect.save!
+          if effect.duration_rounds && effect.duration_rounds > 0
+            effect.duration_rounds -= 1
+            if effect.duration_rounds <= 0
+              effect.end!
+            else
+              effect.save!
+            end
           end
         end
       end
@@ -168,20 +178,30 @@ module Encounters
 
     def check_and_end_effects_on_turn_end(participant, current_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
+        effect.reload
         if effect.duration_type == "end_of_turn" && 
            effect.expires_on_participant_id == participant.id &&
-           current_round >= effect.expires_on_round
+           effect.expires_on_round && current_round >= effect.expires_on_round
           effect.end!
+        elsif effect.duration_type == "time"
+          if effect.duration_rounds && effect.duration_rounds <= 0
+            effect.end!
+          end
         end
       end
     end
 
     def check_and_end_effects_on_turn_start(participant, current_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
+        effect.reload
         if effect.duration_type == "end_of_turn" && 
            effect.expires_on_participant_id == participant.id &&
-           current_round >= effect.expires_on_round
+           effect.expires_on_round && current_round >= effect.expires_on_round
           effect.end!
+        elsif effect.duration_type == "time"
+          if effect.duration_rounds && effect.duration_rounds <= 0
+            effect.end!
+          end
         end
       end
     end

@@ -6,7 +6,7 @@ class EffectTargetsController < ApplicationController
   before_action :ensure_not_ended
 
   def resolve
-    effect = @target.encounter_effect
+    effect = @target.encounter_effect.reload
     participant = @target.encounter_participant
 
     passed = params[:passed] == true || params[:passed] == "true"
@@ -17,7 +17,22 @@ class EffectTargetsController < ApplicationController
       end
     end
 
-    if passed && requires_save
+    current_round = @encounter.round_number
+    duration_expired = false
+
+    case effect.duration_type
+    when "end_of_round"
+      duration_expired = effect.expires_on_round && current_round > effect.expires_on_round
+    when "end_of_turn"
+      duration_expired = effect.expires_on_participant_id == participant.id &&
+                        effect.expires_on_round && current_round > effect.expires_on_round
+    when "time"
+      duration_expired = effect.duration_rounds && effect.duration_rounds <= 0
+    end
+
+    if duration_expired
+      effect.end!
+    elsif passed && requires_save
       @target.end!
     end
 
