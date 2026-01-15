@@ -1,12 +1,24 @@
-
 <h1>Encounter <%= @encounter.status == "active" ? "Running" : "Setup" %></h1>
 
-<p>
-  Status: <strong><%= @encounter.status %></strong>
-  <% if @encounter.status == "active" && @encounter.active_participant.present? %>
-    — Up next: <strong><%= @encounter.active_participant.character.name %></strong>
-  <% end %>
-</p>
+<div class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+    <div>
+      <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px);">Status:</span>
+      <strong style="color: var(--gold); font-size: clamp(16px, 4vw, 18px); margin-left: 8px; text-transform: capitalize;">
+        <%= @encounter.status %>
+      </strong>
+    </div>
+    <% if @encounter.status == "active" && @encounter.active_participant.present? %>
+      <span style="color: var(--lavender); opacity: 0.7;">•</span>
+      <div>
+        <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px);">Up next:</span>
+        <strong style="color: var(--lavender); font-size: clamp(16px, 4vw, 18px); margin-left: 8px;">
+          <%= @encounter.active_participant.character.name %>
+        </strong>
+      </div>
+    <% end %>
+  </div>
+</div>
 
 <% ended = (@encounter.status == "ended") %>
 
@@ -25,10 +37,11 @@
 
   <%# Add combatant form (hidden by default) %>
   <div id="add-combatant-form-wrapper" style="display: none;">
-    <h2>Add NPC/Enemy</h2>
-    <p style="margin-bottom: 1rem; opacity: 0.7;">
-      Combatant will be added at the end of the current round.
-    </p>
+    <div class="card">
+      <h2>Add NPC/Enemy</h2>
+      <p style="margin-bottom: 1rem; opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px);">
+        Combatant will be added at the end of the current round.
+      </p>
     <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), 
                   method: :post, 
                   id: "add-combatant-form-active",
@@ -61,11 +74,13 @@
         </button>
       </div>
     <% end %>
+    </div>
   </div>
 
   <%# Add Effect form (hidden by default) %>
   <div id="add-effect-form-wrapper" style="display: none;">
-    <h2>Add Effect</h2>
+    <div class="card">
+      <h2>Add Effect</h2>
     <%= form_with url: effects_campaign_encounter_path(@campaign, @encounter),
                   method: :post,
                   id: "add-effect-form",
@@ -155,6 +170,7 @@
         </button>
       </div>
     <% end %>
+    </div>
   </div>
 
   <%= vite_javascript_tag "entrypoints/encounters/run.jsx" %>
@@ -162,7 +178,7 @@
   <%# Setup form (disabled/locked when ended) %>
 
   <% if ended %>
-    <div class="alert alert-info" style="margin-bottom: 1rem;">
+    <div class="alert alert-info" style="margin-bottom: clamp(16px, 4vw, 24px);">
       This encounter has ended. Setup actions are locked.
     </div>
   <% end %>
@@ -170,17 +186,8 @@
 <%= form_with url: update_rolls_campaign_encounter_path(@campaign, @encounter),
               method: :patch,
               data: { turbo: false } do %>
-    <div style="margin-bottom: 1rem;">
-      <%= check_box_tag "show_removed",
-                        "1",
-                        false,
-                        id: "show_removed_checkbox",
-                        onchange: "toggleRemovedCombatants()",
-                        disabled: ended %>
-      <%= label_tag "show_removed_checkbox", "Show removed combatants" %>
-    </div>
-
-    <table>
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table>
       <thead>
         <tr>
           <th>Name</th>
@@ -231,120 +238,81 @@
           </tr>
         <% end %>
       </tbody>
-
-      <tbody id="removed_combatants" style="display: none;">
-        <% @participants.select { |p| p.state == "removed" }.each do |p| %>
-          <% character = p.character %>
-          <tr style="opacity: 0.5;">
-            <td><%= character.name %></td>
-            <td><%= character.pc? ? "PC" : "NPC" %></td>
-
-            <td>
-              <%= number_field_tag "participants[#{p.id}][initiative_roll]",
-                                   p.initiative_roll,
-                                   min: 1, max: 30, step: 1,
-                                   disabled: true %>
-            </td>
-
-            <td><%= p.initiative_mod %></td>
-            <td><%= p.initiative_total || "—" %></td>
-
-            <td>
-              <% unless ended %>
-                <%= link_to "Re-add",
-                            restore_campaign_encounter_encounter_participant_path(@campaign, @encounter, p),
-                            data: { turbo_method: :patch },
-                            class: "btn btn-secondary" %>
-              <% else %>
-                <span style="opacity: 0.6;">Locked</span>
-              <% end %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
     </table>
+    </div>
 
     <% unless ended %>
-      <div style="margin-top: 1rem;">
+      <div style="margin-top: clamp(20px, 5vw, 32px);">
         <%= submit_tag(@missing_rolls ? "Save initiative rolls" : "Save & Activate",
-                       class: "btn btn-primary") %>
+                       class: "btn btn-primary",
+                       style: "width: 100%; max-width: 300px;") %>
       </div>
     <% end %>
   <% end %>
 <% end %>
 
-<hr>
+<hr style="margin: clamp(32px, 8vw, 48px) 0;">
 
 <% unless ended %>
   <% if @encounter.status != "active" %>
     <%# Show form directly for setup mode %>
-    <h2>Add NPC/Enemy</h2>
+    <div class="card">
+      <h2>Add NPC/Enemy</h2>
+      <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), method: :post do %>
+        <div>
+          <%= label_tag "character[name]", "Name" %>
+          <%= text_field_tag "character[name]", nil, placeholder: "Enter NPC name", required: true %>
+        </div>
 
-    <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), method: :post do %>
-      <%= label_tag "character[name]", "Name" %>
-      <%= text_field_tag "character[name]" %>
+        <div>
+          <%= label_tag "character[initiative_mod]", "Initiative Modifier" %>
+          <%= number_field_tag "character[initiative_mod]", 0, required: true %>
+        </div>
 
-      <%= label_tag "character[initiative_mod]", "Initiative mod" %>
-      <%= number_field_tag "character[initiative_mod]", 0 %>
-
-      <%= submit_tag "Add", class: "btn btn-secondary" %>
-    <% end %>
+        <%= submit_tag "Add", class: "btn btn-secondary" %>
+      <% end %>
+    </div>
   <% else %>
     <%# Button to show form for active encounters %>
-    <div style="margin-top: 1rem;">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: clamp(20px, 5vw, 32px);">
       <button type="button" 
               class="btn btn-secondary" 
               onclick="showAddCombatantForm()"
-              id="show-add-combatant-btn">
+              id="show-add-combatant-btn"
+              style="flex: 1; min-width: 150px;">
         Add NPC/Enemy
       </button>
       <button type="button" 
               class="btn btn-secondary" 
               onclick="showAddEffectForm()"
               id="show-add-effect-btn"
-              style="margin-left: 0.5rem;">
+              style="flex: 1; min-width: 150px;">
         Add Effect
       </button>
     </div>
   <% end %>
 
-  <div style="margin-top: 1rem;">
+  <div style="margin-top: clamp(20px, 5vw, 32px);">
     <%= button_to "End Encounter",
                   end_encounter_campaign_encounter_path(@campaign, @encounter),
                   method: :patch,
                   data: { turbo_confirm: "End this encounter?", turbo_frame: "_top" },
-                  class: "btn btn-danger" %>
-  </div>
-
-  <div style="margin-top: 1rem;">
-    <button type="button"
-            class="btn btn-primary"
-            onclick="advanceTurn()">
-      Advance Turn
-    </button>
+                  class: "btn btn-danger",
+                  style: "width: 100%; max-width: 300px;" %>
   </div>
 <% else %>
-  <div class="alert alert-info" style="margin-top: 1rem;">
+  <div class="alert alert-info" style="margin-top: clamp(20px, 5vw, 32px);">
     Encounter ended — actions are disabled.
   </div>
 <% end %>
 
 <script>
-  function toggleRemovedCombatants() {
-    const checkbox = document.getElementById('show_removed_checkbox');
-    const removedSection = document.getElementById('removed_combatants');
-    if (!checkbox || !removedSection) return;
-
-    removedSection.style.display = checkbox.checked ? '' : 'none';
-  }
-
   function getCSRFToken() {
     const el = document.querySelector('meta[name="csrf-token"]');
     return el ? el.content : '';
   }
 
   function advanceTurn() {
-    // Don't try to advance if the button is hidden/locked, but guard anyway:
     const url = '<%= advance_turn_campaign_encounter_path(@campaign, @encounter) %>';
     fetch(url, {
       method: 'POST',
@@ -382,11 +350,9 @@
   }
 
   <% if @encounter.status == "active" %>
-    // Store current encounter state when entering add mode
     let savedEncounterState = null;
 
     function showAddCombatantForm() {
-      // Save current state
       savedEncounterState = {
         activeParticipantId: <%= @encounter.active_participant_id || 'null' %>,
         roundNumber: <%= @encounter.round_number || 1 %>,
@@ -394,7 +360,6 @@
       };
       console.log('Saved encounter state:', savedEncounterState);
 
-      // Hide console, show form
       const consoleWrapper = document.getElementById('combat-console-wrapper');
       const formWrapper = document.getElementById('add-combatant-form-wrapper');
       const showBtn = document.getElementById('show-add-combatant-btn');
@@ -405,7 +370,6 @@
     }
 
     function cancelAddCombatant() {
-      // Restore console, hide form
       const consoleWrapper = document.getElementById('combat-console-wrapper');
       const formWrapper = document.getElementById('add-combatant-form-wrapper');
       const showBtn = document.getElementById('show-add-combatant-btn');
@@ -414,13 +378,10 @@
       if (formWrapper) formWrapper.style.display = 'none';
       if (showBtn) showBtn.style.display = 'block';
 
-      // Clear saved state
       savedEncounterState = null;
     }
 
   function handleAddCombatantSubmit(event) {
-    // Form will submit normally, but we want to show console after redirect
-    // The redirect will happen on the server side
     return true;
   }
 
@@ -434,7 +395,6 @@
     if (formWrapper) formWrapper.style.display = 'block';
     if (showBtn) showBtn.style.display = 'none';
     
-    // Ensure event listener is attached
     if (form) {
       form.addEventListener('submit', handleAddEffectSubmit, { once: false });
     }
@@ -471,7 +431,6 @@
     
     if (!saveTypeWrapper) return;
     
-    // Check all target timing selects
     const allTimingSelects = document.querySelectorAll('[id^="target_timing_"]');
     let hasCheckedTarget = false;
     let allSelectedNone = true;
@@ -487,12 +446,8 @@
         }
     });
     
-    // Hide save type if all checked targets have "none" timing
-    // Show it if at least one checked target has "start_of_turn" or "end_of_turn"
         if (hasCheckedTarget && allSelectedNone) {
-          // At least one target has a non-none timing
       saveTypeWrapper.style.display = 'none';
-      // Clear save ability selection
       const saveTypeSelect = document.getElementById('save_ability_select');
       if (saveTypeSelect) saveTypeSelect.value = '';
     } else {
@@ -527,7 +482,6 @@
     })
     .then(data => {
       if (data.success) {
-        // Hide form, show console, and reload page to see the effect
         cancelAddEffect();
         window.location.reload();
       } else {
@@ -542,7 +496,6 @@
     return false;
   }
 
-  // Attach event listener when DOM is ready (for initial load)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('add-effect-form');
@@ -551,7 +504,6 @@
       }
     });
   } else {
-    // DOM already loaded
     const form = document.getElementById('add-effect-form');
     if (form) {
       form.addEventListener('submit', handleAddEffectSubmit);

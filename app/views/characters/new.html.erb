@@ -12,14 +12,25 @@
 <% end %>
 
 <%= form_with model: [@campaign, @character], multipart: true do |f| %>
-  <%= f.label :name %>
-  <%= f.text_field :name %>
+  <div>
+    <%= f.label :name, "Character Name" %>
+    <%= f.text_field :name, placeholder: "Enter character name", required: true %>
+  </div>
 
-  <%= f.label :initiative_mod %>
-  <%= f.number_field :initiative_mod %>
+  <div>
+    <%= f.label :initiative_mod, "Initiative Modifier" %>
+    <%= f.number_field :initiative_mod, value: 0, step: 1, required: true %>
+    <small>Positive or negative modifier for initiative rolls</small>
+  </div>
 
-  <%= f.label :avatar %>
-  <%= f.file_field :avatar %>
+  <div>
+    <%= f.label :avatar, "Avatar (Optional)" %>
+    <%= f.file_field :avatar, accept: "image/png,image/jpeg,image/jpg" %>
+    <small>PNG or JPG, max 2MB. If not provided, default avatar will be used.</small>
+  </div>
 
-  <%= f.submit "Create Character" %>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+    <%= f.submit "Create Character", class: "btn btn-primary" %>
+    <%= link_to "Cancel", campaign_path(@campaign), class: "btn btn-secondary" %>
+  </div>
 <% end %>

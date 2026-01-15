@@ -7,7 +7,6 @@ class User < ApplicationRecord
 
   def can_create_campaign?
     campaigns.count < 1
-    #has_unlocked_campaigns?
   end
 
 end

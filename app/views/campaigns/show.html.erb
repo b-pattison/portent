@@ -11,90 +11,127 @@
 
 <h1><%= @campaign.name %></h1>
 
-<h2>Encounters</h2>
-<% if @active_encounter %>
-  <p>
-    <strong>Active Encounter:</strong>
-    <%= link_to "View Active Encounter", campaign_encounter_path(@campaign, @active_encounter), class: "btn btn-primary" %>
-    (Started <%= @active_encounter.created_at.strftime("%B %d, %Y at %I:%M %p") %>)
-  </p>
-<% else %>
-  <%= button_to "Start New Encounter",
-                start_encounter_campaign_path(@campaign),
-                method: :post,
-                class: "btn btn-primary" %>
-<% end %>
+<div class="card">
+  <h2>Encounters</h2>
+  <% if @active_encounter %>
+    <div style="margin-bottom: 20px;">
+      <p style="margin-bottom: 12px; opacity: 0.9;">
+        <strong style="color: var(--gold);">Active Encounter</strong>
+        <br>
+        <span style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7;">
+          Started <%= @active_encounter.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+        </span>
+      </p>
+      <%= link_to "View Active Encounter →", campaign_encounter_path(@campaign, @active_encounter), class: "btn btn-primary", style: "width: 100%; max-width: 300px;" %>
+    </div>
+  <% else %>
+    <%= button_to "Start New Encounter",
+                  start_encounter_campaign_path(@campaign),
+                  method: :post,
+                  class: "btn btn-primary",
+                  style: "width: 100%; max-width: 300px;" %>
+  <% end %>
 
-<% if @past_encounters.any? %>
-  <h3>Past Encounters</h3>
-  <ul>
-    <% @past_encounters.each do |encounter| %>
-      <li>
-        <%= link_to "Encounter from #{encounter.created_at.strftime("%B %d, %Y at %I:%M %p")}", 
-                    campaign_encounter_path(@campaign, encounter) %>
-      </li>
+  <% if @past_encounters.any? %>
+    <h3 style="margin-top: 32px; margin-bottom: 16px;">Past Encounters</h3>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <% @past_encounters.each do |encounter| %>
+        <div style="padding: 12px; background: rgba(26, 31, 58, 0.4); border-radius: 8px; border: 1px solid var(--light-purple)30;">
+          <%= link_to "Encounter from #{encounter.created_at.strftime("%B %d, %Y at %I:%M %p")}", 
+                      campaign_encounter_path(@campaign, encounter),
+                      style: "color: var(--lavender); text-decoration: none;" %>
+        </div>
+      <% end %>
+    </div>
+    <% if @past_encounters_count > 5 %>
+      <div style="margin-top: 16px;">
+        <%= link_to "View All Past Encounters (#{@past_encounters_count}) →", 
+                    past_encounters_campaign_path(@campaign), 
+                    class: "btn btn-secondary",
+                    style: "width: 100%; max-width: 300px;" %>
+      </div>
     <% end %>
-  </ul>
-<% end %>
+  <% end %>
+</div>
 
-<h2>Player Characters</h2>
-<ul>
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <h2 style="margin: 0;">Player Characters</h2>
+    <%= link_to "Add PC", new_campaign_character_path(@campaign), class: "btn btn-primary" %>
+  </div>
+  
   <% pcs = @campaign.characters.pcs.permanent %>
   <% if pcs.empty? %>
-    No PCs yet.
+    <p style="opacity: 0.7; text-align: center; padding: 20px;">No PCs yet. Add your first player character!</p>
   <% else %>
-    <% pcs.each do |character| %>
-        <li>
-
-        <% if character.avatar.attached? %>
-        <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
-        <% else %>
-        <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
-        <% end %>
-        <%= character.name %>
-        <%= character.initiative_mod %>
-
-        <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary" %>
-
-        <%= link_to "Delete",
-            campaign_character_path(@campaign, character),
-            data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
-            class: "btn btn-danger" %>
-        </li>
-    <% end %>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
+      <% pcs.each do |character| %>
+        <div style="padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <% if character.avatar.attached? %>
+              <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
+            <% else %>
+              <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
+            <% end %>
+            <div>
+              <div style="font-weight: 600; font-size: clamp(16px, 4vw, 18px); color: var(--white);">
+                <%= character.name %>
+              </div>
+              <div style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7; color: var(--lavender);">
+                Init Mod: <%= character.initiative_mod >= 0 ? "+" : "" %><%= character.initiative_mod %>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary", style: "flex: 1; min-width: 80px; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+            <%= link_to "Delete",
+                campaign_character_path(@campaign, character),
+                data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
+                class: "btn btn-danger",
+                style: "flex: 1; min-width: 80px; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
   <% end %>
+</div>
 
-</ul>
-
-<%= link_to "Add PC", new_campaign_character_path(@campaign), class: "btn btn-primary" %>
-
-<h2>NPCs</h2>
-<ul>
+<div class="card">
+  <h2>NPCs</h2>
   <% npcs = @campaign.characters.npcs.permanent %>
   <% if npcs.empty? %>
-    No NPCs yet.
+    <p style="opacity: 0.7; text-align: center; padding: 20px;">No NPCs yet.</p>
   <% else %>
-    <% npcs.each do |character| %>
-        <li>
-
-        <% if character.avatar.attached? %>
-        <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
-        <% else %>
-        <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
-        <% end %>
-        <%= character.name %>
-        <%= character.initiative_mod %>
-
-        <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary" %>
-
-        <%= link_to "Delete",
-            campaign_character_path(@campaign, character),
-            data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
-            class: "btn btn-danger" %>
-        </li>
-    <% end %>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
+      <% npcs.each do |character| %>
+        <div style="padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <% if character.avatar.attached? %>
+              <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
+            <% else %>
+              <%= image_tag "default_avatar.png", alt: character.name, class: "avatar" %>
+            <% end %>
+            <div>
+              <div style="font-weight: 600; font-size: clamp(16px, 4vw, 18px); color: var(--white);">
+                <%= character.name %>
+              </div>
+              <div style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7; color: var(--lavender);">
+                Init Mod: <%= character.initiative_mod >= 0 ? "+" : "" %><%= character.initiative_mod %>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <%= link_to "Edit", edit_campaign_character_path(@campaign, character), class: "btn btn-secondary", style: "flex: 1; min-width: 80px; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+            <%= link_to "Delete",
+                campaign_character_path(@campaign, character),
+                data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this character?" },
+                class: "btn btn-danger",
+                style: "flex: 1; min-width: 80px; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
   <% end %>
-
-</ul>
+</div>
 
 

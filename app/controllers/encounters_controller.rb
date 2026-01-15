@@ -4,24 +4,6 @@ class EncountersController < ApplicationController
   before_action :set_campaign
   before_action :set_encounter, only: %i[show update_rolls add_combatant end_encounter state advance_turn ensure_not_ended]
 
-#   {
-#   "encounter": {
-#     "id": 123,
-#     "status": "active",
-#     "round": 2,
-#     "active_participant_id": 55
-#   },
-#   "participants": [
-#     {
-#       "id": 55,
-#       "name": "Finch",
-#       "kind": "pc",
-#       "initiative_total": 17,
-#       "hp": 24,
-#       "max_hp": 31
-#     }
-#   ]
-# }
   def state
     render json: Encounters::StatePresenter.new(@encounter).as_json
   end
@@ -118,14 +100,12 @@ class EncountersController < ApplicationController
       initiative_mod: params.require(:character).fetch(:initiative_mod).to_i
     )
 
-    # Attach avatar if provided
     if params[:character][:avatar].present?
       character.avatar.attach(params[:character][:avatar])
     end
 
     was_active = @encounter.status == "active"
     
-    # Set added_in_round: nil for setup mode, next round for active encounters
     added_in_round = was_active ? @encounter.round_number + 1 : nil
     
     participant = @encounter.encounter_participants.create!(
@@ -135,7 +115,6 @@ class EncountersController < ApplicationController
       added_in_round: added_in_round
     )
 
-    # If initiative_roll is provided, save it and calculate total
     if params[:character][:initiative_roll].present?
       roll = params[:character][:initiative_roll].to_i
       mod = participant.initiative_mod.to_i
@@ -146,11 +125,8 @@ class EncountersController < ApplicationController
     end
 
     if was_active
-      # During active encounter, don't reset status - combatant will be added to list
-      # but current turn order is preserved. They'll join on the next round.
       redirect_to [@campaign, @encounter], notice: "Combatant added! They will join the initiative order at the start of round #{added_in_round}."
     else
-      # During setup, allow normal flow
       redirect_to [@campaign, @encounter], notice: "Combatant added!"
     end
   end

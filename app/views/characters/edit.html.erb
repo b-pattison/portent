@@ -12,23 +12,32 @@
 <% end %>
 
 <%= form_with model: [@campaign, @character], multipart: true do |f| %>
-  <%= f.label :name %>
-  <%= f.text_field :name %>
+  <div>
+    <%= f.label :name, "Character Name" %>
+    <%= f.text_field :name, placeholder: "Enter character name", required: true %>
+  </div>
 
-  <%= f.label :initiative_mod %>
-  <%= f.number_field :initiative_mod %>
+  <div>
+    <%= f.label :initiative_mod, "Initiative Modifier" %>
+    <%= f.number_field :initiative_mod, step: 1, required: true %>
+    <small>Positive or negative modifier for initiative rolls</small>
+  </div>
 
-  <%= f.label :avatar %>
-  <%= f.file_field :avatar %>
-  
-  <% if @character.avatar.attached? %>
-    <div>
-      <p>Current avatar:</p>
-      <%= image_tag @character.avatar, alt: @character.name, style: "max-width: 200px;" %>
-    </div>
-  <% end %>
+  <div>
+    <%= f.label :avatar, "Avatar (Optional)" %>
+    <%= f.file_field :avatar, accept: "image/png,image/jpeg,image/jpg" %>
+    <small>PNG or JPG, max 2MB. Leave empty to keep current avatar.</small>
+    
+    <% if @character.avatar.attached? %>
+      <div style="margin-top: 16px; padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+        <p style="margin-bottom: 12px; color: var(--lavender); font-weight: 500;">Current avatar:</p>
+        <%= image_tag @character.avatar, alt: @character.name, class: "avatar", style: "width: clamp(80px, 15vw, 120px); height: clamp(80px, 15vw, 120px);" %>
+      </div>
+    <% end %>
+  </div>
 
-  <%= f.submit "Update Character" %>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+    <%= f.submit "Update Character", class: "btn btn-primary" %>
+    <%= link_to "Cancel", campaign_path(@campaign), class: "btn btn-secondary" %>
+  </div>
 <% end %>
-
-<%= link_to "Back to Campaign", campaign_path(@campaign), class: "btn btn-secondary" %>

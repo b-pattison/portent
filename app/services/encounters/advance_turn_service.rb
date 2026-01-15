@@ -29,7 +29,6 @@ module Encounters
         
         current_active = @encounter.active_participant
         
-        # Determine next participant and new round number
         next_participant = nil
         new_round = current_round
         
@@ -41,7 +40,6 @@ module Encounters
           if current_index.nil?
             next_participant = ordered_participants.first
           elsif current_index == ordered_participants.length - 1
-            # End of round - check for round-based effects
             new_round = current_round + 1
             check_and_end_round_effects(new_round)
             next_participant = ordered_participants.first
@@ -50,10 +48,7 @@ module Encounters
           end
         end
 
-        # Before advancing, check for end-of-turn effects on current participant
-        # Also check if any effects should expire based on duration
         if current_active
-          # Check if effects should expire (duration-based removal)
           check_and_end_effects_on_turn_end(current_active, current_round)
           
           interrupt = check_end_of_turn_effects(current_active, current_round)
@@ -64,7 +59,6 @@ module Encounters
           end
         end
 
-        # Advance to next participant
         if current_active.nil?
           @encounter.update!(
             active_participant_id: next_participant.id,
@@ -78,8 +72,6 @@ module Encounters
           )
         end
 
-        # Check for start-of-turn effects on new participant
-        # Also check if any effects should expire based on duration
         check_and_end_effects_on_turn_start(next_participant, new_round)
         
         interrupt = check_start_of_turn_effects(next_participant)
@@ -109,10 +101,8 @@ module Encounters
         
         next unless target
 
-        # Skip if trigger timing is "no_trigger" - these don't trigger prompts
         next if target.trigger_timing == "no_trigger"
 
-        # Check if effect should trigger
         if effect.save_ability.present?
           save_ability_str = SAVE_ABILITY_NAMES[effect.save_ability] || effect.save_ability.to_s
           return {
@@ -122,7 +112,6 @@ module Encounters
             participant_name: participant.character.name
           }
         else
-          # No save required, apply HP effect immediately
           apply_hp_effect(effect, participant)
         end
       end
@@ -144,7 +133,6 @@ module Encounters
         
         next unless target
 
-        # Skip if trigger timing is "no_trigger" - these don't trigger prompts
         next if target.trigger_timing == "no_trigger"
 
         if effect.save_ability.present?
@@ -156,7 +144,6 @@ module Encounters
             participant_name: participant.character.name
           }
         else
-          # No save required, apply HP effect immediately
           apply_hp_effect(effect, participant)
         end
       end
@@ -167,12 +154,10 @@ module Encounters
     def check_and_end_round_effects(new_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
         if effect.duration_type == "end_of_round" && effect.expires_on_round == new_round
-          # Duration expired - end effect regardless of save pass/fail
           effect.end!
         elsif effect.duration_type == "time"
           effect.duration_rounds -= 1
           if effect.duration_rounds <= 0
-            # Duration expired - end effect regardless of save pass/fail
             effect.end!
           else
             effect.save!
@@ -182,34 +167,26 @@ module Encounters
     end
 
     def check_and_end_effects_on_turn_end(participant, current_round)
-      # Check for effects that expire at the end of this participant's turn
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
         if effect.duration_type == "end_of_turn" && 
            effect.expires_on_participant_id == participant.id &&
            current_round >= effect.expires_on_round
-          # Duration expired - end effect regardless of save pass/fail
           effect.end!
         end
       end
     end
 
     def check_and_end_effects_on_turn_start(participant, current_round)
-      # Check for effects that expire at the start of this participant's turn
-      # (This is mainly for consistency, end_of_turn effects are checked at end of turn)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
         if effect.duration_type == "end_of_turn" && 
            effect.expires_on_participant_id == participant.id &&
            current_round >= effect.expires_on_round
-          # Duration expired - end effect regardless of save pass/fail
           effect.end!
         end
       end
     end
 
     def apply_hp_effect(effect, participant)
-      # TODO: Apply hp_delta to participant/character
-      # For MVP, we'll track this conceptually
-      # participant.character.update!(hp: participant.character.hp + effect.hp_delta)
     end
   end
 end

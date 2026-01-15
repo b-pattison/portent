@@ -33,32 +33,26 @@ class EncounterEffectsController < ApplicationController
   def create
     effect = @encounter.encounter_effects.build(effect_params)
 
-    # Set duration fields based on duration_type
     case params[:duration_type]
     when "end_of_round"
       effect.expires_on_round = @encounter.round_number
     when "end_of_turn"
-      # Automatically use the current active participant
-      # Effect will expire at the end of their turn in the NEXT round
       if @encounter.active_participant.present?
         effect.expires_on_participant_id = @encounter.active_participant.id
-        # Set expires_on_round to next round (when their next turn will end)
         effect.expires_on_round = @encounter.round_number + 1
       else
         render json: { errors: ["Cannot set effect to end on character's turn: no active participant in encounter"] }, status: :unprocessable_entity
         return
       end
     when "time"
-      # Convert time to rounds (assuming 6 seconds per round)
       amount = params[:time_amount].to_i
-      unit = params[:time_unit] # "seconds" or "minutes"
+      unit = params[:time_unit]
       seconds = unit == "minutes" ? amount * 60 : amount
       effect.duration_rounds = (seconds / 6.0).ceil
     end
 
     if effect.save
       effect.reload
-      # Create targets
       all_timings_none = true
       if params[:target_ids].present?
         params[:target_ids].each do |target_id|
@@ -72,7 +66,6 @@ class EncounterEffectsController < ApplicationController
         end
       end
       
-      # If all targets have "none" timing, clear save_ability
       if all_timings_none && effect.save_ability.present?
         effect.update!(save_ability: nil)
       end

@@ -12,18 +12,11 @@ class EffectTargetsController < ApplicationController
     passed = params[:passed] == true || params[:passed] == "true"
     requires_save = effect.save_ability.present?
 
-    # Apply HP effect if save failed (or if no save required)
     if !requires_save || !passed
-      # Apply hp_delta (negative = damage, positive = healing)
-      # Note: This assumes characters have an hp field - you may need to adjust
-      # For MVP, we'll just track it conceptually
       if effect.hp_delta != 0
-        # TODO: Apply HP change to character/participant
-        # For now, we'll just mark that it was applied
       end
     end
 
-    # If save passed, end this target
     if passed && requires_save
       @target.end!
     end

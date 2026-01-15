@@ -30,6 +30,12 @@ class CampaignsController < ApplicationController
   def show
     @campaign = current_user.campaigns.find(params[:id])
     @active_encounter = @campaign.encounters.active.first
+    @past_encounters = @campaign.encounters.ended.order(created_at: :desc).limit(5)
+    @past_encounters_count = @campaign.encounters.ended.count
+  end
+
+  def past_encounters
+    @campaign = current_user.campaigns.find(params[:id])
     @past_encounters = @campaign.encounters.ended.order(created_at: :desc)
   end
 

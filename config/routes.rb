@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   resources :campaigns, only: %i[index create show] do
     member do
       post :start_encounter
+      get :past_encounters
     end
 
     resources :characters, only: %i[new create edit update destroy]

@@ -12,11 +12,10 @@
 <% end %>
 
 <% if current_user.can_create_campaign? %>
-  <%# Inline create form (no /campaigns/new page needed) %>
   <%= form_with model: @campaign, url: campaigns_path do |f| %>
     <div>
       <%= f.label :name, "Campaign name" %>
-      <%= f.text_field :name %>
+      <%= f.text_field :name, placeholder: "Enter campaign name", required: true %>
     </div>
 
     <%= f.submit "Create Campaign", class: "btn btn-primary" %>
@@ -30,11 +29,21 @@
 <hr>
 
 <% if @campaigns.empty? %>
-  <p>No campaigns yet.</p>
+  <div class="card text-center">
+    <p style="opacity: 0.7; font-size: clamp(16px, 4vw, 18px);">No campaigns yet. Create your first campaign to begin!</p>
+  </div>
 <% else %>
-  <ul>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: clamp(16px, 4vw, 24px);">
     <% @campaigns.each do |campaign| %>
-      <li><%= link_to campaign.name, campaign_path(campaign) %></li>
+      <div class="card">
+        <h3 style="margin-bottom: 12px; font-size: clamp(18px, 4vw, 22px);">
+          <%= link_to campaign.name, campaign_path(campaign), style: "color: var(--gold); text-decoration: none;" %>
+        </h3>
+        <p style="opacity: 0.7; font-size: clamp(12px, 3vw, 14px); margin-bottom: 16px;">
+          Created <%= campaign.created_at.strftime("%B %d, %Y") %>
+        </p>
+        <%= link_to "View Campaign →", campaign_path(campaign), class: "btn btn-secondary", style: "width: 100%;" %>
+      </div>
     <% end %>
-  </ul>
+  </div>
 <% end %>

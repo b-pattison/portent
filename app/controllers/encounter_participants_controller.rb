@@ -8,7 +8,6 @@ class EncounterParticipantsController < ApplicationController
     was_active = @encounter.active_participant_id == @participant.id
     @participant.update!(permitted_params)
     
-    # If the active participant was marked as dead, advance the turn
     if was_active && @participant.state == "dead" && @encounter.status == "active"
       Encounters::AdvanceTurnService.new(@encounter.reload).call!
     end

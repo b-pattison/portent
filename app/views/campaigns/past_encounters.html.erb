@@ -1,0 +1,48 @@
+<h1>Past Encounters - <%= @campaign.name %></h1>
+
+<div style="margin-bottom: 24px;">
+  <%= link_to "← Back to Campaign", campaign_path(@campaign), class: "btn btn-secondary" %>
+</div>
+
+<div class="card">
+  <h2>All Past Encounters (<%= @past_encounters.count %>)</h2>
+  
+  <% if @past_encounters.empty? %>
+    <p style="opacity: 0.7; text-align: center; padding: 40px;">
+      No past encounters yet.
+    </p>
+  <% else %>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+      <% @past_encounters.each do |encounter| %>
+        <div style="padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30; transition: all 0.3s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="flex: 1; min-width: 200px;">
+              <div style="font-weight: 600; font-size: clamp(16px, 4vw, 18px); color: var(--white); margin-bottom: 6px;">
+                <%= link_to "Encounter from #{encounter.created_at.strftime("%B %d, %Y at %I:%M %p")}", 
+                            campaign_encounter_path(@campaign, encounter),
+                            style: "color: var(--lavender); text-decoration: none;" %>
+              </div>
+              <div style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7; color: var(--lavender);">
+                <% if encounter.ended_at %>
+                  Ended: <%= encounter.ended_at.strftime("%B %d, %Y at %I:%M %p") %>
+                <% else %>
+                  Status: <%= encounter.status.capitalize %>
+                <% end %>
+              </div>
+            </div>
+            <div>
+              <%= link_to "View Encounter →", 
+                          campaign_encounter_path(@campaign, encounter), 
+                          class: "btn btn-secondary",
+                          style: "min-width: 150px;" %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<div style="margin-top: 24px;">
+  <%= link_to "← Back to Campaign", campaign_path(@campaign), class: "btn btn-secondary" %>
+</div>

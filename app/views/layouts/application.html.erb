@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-  
-    <p class="notice"><%= notice %></p>
-    <p class="alert"><%= alert %></p>
     <title><%= content_for(:title) || "Portent" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,10 +26,20 @@
 
   <body>
     <% if user_signed_in? %>
-      <div style="text-align: right; padding: 10px;">
+      <div class="user-nav">
         <%= link_to "Sign out", destroy_user_session_path, data: { turbo_method: :delete }, class: "btn btn-secondary" %>
       </div>
     <% end %>
-    <%= yield %>
+    
+    <% if notice %>
+      <div class="flash flash-notice"><%= notice %></div>
+    <% end %>
+    <% if alert %>
+      <div class="flash flash-alert"><%= alert %></div>
+    <% end %>
+    
+    <main class="main-content">
+      <%= yield %>
+    </main>
   </body>
 </html>

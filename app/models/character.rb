@@ -38,11 +38,9 @@ private
   def validate_avatar
     return unless avatar.attached?
 
-    #Must be a PNG or JPG image
     unless avatar.content_type.in?(%w[image/png image/jpeg image/jpg])
       errors.add(:avatar, "Must be a PNG or JPG image.")
     end
-    #Must be less than 2MB
     if avatar.byte_size > 2.megabytes
       errors.add(:avatar, "Must be less than 2MB.")
     end

@@ -31,7 +31,8 @@ module Encounters
               name: p.character.name,
               kind: p.character.pc? ? "pc" : "npc",
               state: p.state,
-              avatar_url: p.character.avatar.attached? ? Rails.application.routes.url_helpers.url_for(p.character.avatar) : nil
+              avatar_url: p.character.avatar.attached? ? Rails.application.routes.url_helpers.url_for(p.character.avatar) : nil,
+              active_effects: active_effects_for_participant(p)
             }
           end
         }
@@ -62,9 +63,6 @@ module Encounters
             initiative_mod: p.initiative_mod,
             initiative_total: p.initiative_total,
             state: p.state
-            # If/when you add hp fields, put them here (either from character or participant)
-            # hp: p.character.hp,
-            # max_hp: p.character.max_hp
           }
         end
       end
@@ -100,7 +98,6 @@ module Encounters
       end
 
       def active_effects_for_participant(participant)
-        # Find all active effects that have this participant as a target
         effect_ids = EncounterEffectTarget
                       .where(
                         encounter_participant_id: participant.id,
@@ -111,7 +108,7 @@ module Encounters
         
         encounter.encounter_effects
                  .where(id: effect_ids, ended_at: nil)
-                 .pluck(:name)
+                 .map { |effect| { id: effect.id, name: effect.name } }
       end
     end
   end
