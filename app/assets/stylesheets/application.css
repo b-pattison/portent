@@ -232,6 +232,14 @@ table input[type="number"] {
   padding: clamp(12px, 3vw, 16px);
 }
 
+@media (max-width: 768px) {
+  table input[type="number"] {
+    min-height: 72px;
+    font-size: clamp(24px, 6vw, 28px);
+    padding: clamp(16px, 4vw, 20px);
+  }
+}
+
 input[type="text"]:focus,
 input[type="number"]:focus,
 input[type="email"]:focus,
@@ -451,9 +459,10 @@ hr {
   overflow: hidden;
   margin: clamp(20px, 5vw, 32px) 0;
   padding: clamp(20px, 5vw, 32px);
-  border: 1px solid var(--antique-gold)40;
+  border: 1px solid rgba(214, 194, 122, 0.9) !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(232, 216, 168, 0.1);
   min-height: 400px;
+  box-sizing: border-box;
 }
 
 #combat-console-wrapper::after {
@@ -466,11 +475,16 @@ hr {
   background: rgba(14, 11, 34, 0.15);
   z-index: 0;
   pointer-events: none;
+  border-radius: 14px;
 }
 
 #combat-console-root {
   position: relative;
   z-index: 1;
+}
+
+#encounter-status-card {
+  border: 1px solid rgba(214, 194, 122, 0.9) !important;
 }
 
 /* Responsive adjustments */
