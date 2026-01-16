@@ -5,6 +5,7 @@ class CharactersController < ApplicationController
 
   def new
     @character = @campaign.characters.new
+    @character.pc = false if params[:pc] == "false"
   end
 
   def create

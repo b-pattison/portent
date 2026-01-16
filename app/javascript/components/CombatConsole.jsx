@@ -72,7 +72,8 @@ export default function CombatConsole({ boot }) {
 
   useEffect(() => {
     loadState();
-  }, [loadState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateUrl]);
 
   // ✅ Derive values with safe fallbacks BEFORE any return
   const encounter = data?.encounter ?? null;
@@ -127,7 +128,8 @@ export default function CombatConsole({ boot }) {
   const advanceTurnInternal = useCallback(async () => {
     if (!boot?.campaignId || !boot?.encounterId || !boot?.csrfToken) {
       console.error("CombatConsole: missing boot data for advanceTurn");
-      return;
+      setAdvancing(false);
+      return true; // Done (with error, but don't loop)
     }
 
     const url = `/campaigns/${boot.campaignId}/encounters/${boot.encounterId}/advance_turn`;
@@ -218,9 +220,27 @@ export default function CombatConsole({ boot }) {
       }
 
       setInterrupt(null);
+      
+      // If save failed, stop and wait for user to press "Advance Turn" again
+      if (passed === false) {
+        setAdvancing(false);
+        return;
+      }
+      
+      // If save passed, continue advancing turns
       let done = false;
       while (!done) {
-        done = await advanceTurnInternal();
+        const result = await advanceTurnInternal();
+        if (result === false) {
+          // Another interrupt occurred, stop looping and wait for user
+          // Don't reset advancing state - we're still processing, just waiting for user input
+          break;
+        }
+        done = result === true;
+      }
+      // If we exited the loop without an interrupt, we're done advancing
+      if (done) {
+        setAdvancing(false);
       }
     } catch (e) {
       console.error("CombatConsole: error resolving interrupt", e);

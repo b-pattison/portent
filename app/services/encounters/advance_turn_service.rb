@@ -59,6 +59,7 @@ module Encounters
           check_and_end_effects_on_turn_end(current_active, new_round)
         end
 
+        # Advance the turn first
         if current_active.nil?
           @encounter.update!(
             active_participant_id: next_participant.id,
@@ -74,6 +75,8 @@ module Encounters
 
         check_and_end_effects_on_turn_start(next_participant, new_round)
         
+        # Check for start_of_turn effects AFTER advancing
+        # If there's an interrupt, the turn has already advanced but we wait for resolution
         interrupt = check_start_of_turn_effects(next_participant)
         if interrupt
           result[:status] = :interrupt

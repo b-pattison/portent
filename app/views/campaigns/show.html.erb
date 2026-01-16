@@ -57,7 +57,7 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
     <h2 style="margin: 0;">Player Characters</h2>
-    <%= link_to "Add PC", new_campaign_character_path(@campaign), class: "btn btn-primary" %>
+    <%= link_to "Add PC", new_campaign_character_path(@campaign, pc: true), class: "btn btn-primary" %>
   </div>
   
   <% pcs = @campaign.characters.pcs.permanent %>
@@ -97,7 +97,10 @@
 </div>
 
 <div class="card">
-  <h2>NPCs</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <h2 style="margin: 0;">NPCs</h2>
+    <%= link_to "Add NPC", new_campaign_character_path(@campaign, pc: false), class: "btn btn-primary" %>
+  </div>
   <% npcs = @campaign.characters.npcs.permanent %>
   <% if npcs.empty? %>
     <p style="opacity: 0.7; text-align: center; padding: 20px;">No NPCs yet.</p>

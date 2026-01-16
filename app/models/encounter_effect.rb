@@ -30,7 +30,9 @@ class EncounterEffect < ApplicationRecord
   end
 
   def end!
-    update!(ended_at: Time.current)
+    # Use update_columns to skip validations when ending the effect
+    # This prevents validation errors when duration_rounds is 0
+    update_columns(ended_at: Time.current)
     targets.update_all(active: false, ended_at: Time.current)
   end
 
@@ -41,6 +43,9 @@ class EncounterEffect < ApplicationRecord
   private
 
   def duration_fields_are_consistent
+    # Skip validation if effect is already ended
+    return if ended_at.present?
+    
     case duration_type
     when "end_of_round"
       errors.add(:expires_on_round, "is required") if expires_on_round.blank?

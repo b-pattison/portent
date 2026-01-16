@@ -476,11 +476,13 @@
     const consoleWrapper = document.getElementById('combat-console-wrapper');
     const formWrapper = document.getElementById('add-effect-form-wrapper');
     const showBtn = document.getElementById('show-add-effect-btn');
+    const addCombatantBtn = document.getElementById('show-add-combatant-btn');
     const form = document.getElementById('add-effect-form');
 
     if (consoleWrapper) consoleWrapper.style.display = 'none';
     if (formWrapper) formWrapper.style.display = 'block';
     if (showBtn) showBtn.style.display = 'none';
+    if (addCombatantBtn) addCombatantBtn.style.display = 'none';
     
     if (form) {
       form.addEventListener('submit', handleAddEffectSubmit, { once: false });
@@ -525,10 +527,12 @@
     const consoleWrapper = document.getElementById('combat-console-wrapper');
     const formWrapper = document.getElementById('add-effect-form-wrapper');
     const showBtn = document.getElementById('show-add-effect-btn');
+    const addCombatantBtn = document.getElementById('show-add-combatant-btn');
 
     if (consoleWrapper) consoleWrapper.style.display = 'block';
     if (formWrapper) formWrapper.style.display = 'none';
     if (showBtn) showBtn.style.display = 'block';
+    if (addCombatantBtn) addCombatantBtn.style.display = 'block';
   }
 
   function updateDurationFields() {

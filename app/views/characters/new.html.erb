@@ -12,6 +12,7 @@
 <% end %>
 
 <%= form_with model: [@campaign, @character], multipart: true do |f| %>
+  <%= f.hidden_field :pc %>
   <div>
     <%= f.label :name, "Character Name" %>
     <%= f.text_field :name, placeholder: "Enter character name", required: true %>

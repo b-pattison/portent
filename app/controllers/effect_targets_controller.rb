@@ -33,15 +33,8 @@ class EffectTargetsController < ApplicationController
     if duration_expired
       effect.end!
     elsif requires_save
-      if @target.trigger_timing == "start_of_turn"
-        if passed
-        else
-          @target.end!
-        end
-      else
-        if passed
-          @target.end!
-        end
+      if passed
+        @target.end!
       end
     end
 

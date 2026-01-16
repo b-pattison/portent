@@ -32,8 +32,11 @@ class EncounterEffectsController < ApplicationController
 
   def create
     effect = @encounter.encounter_effects.build(effect_params)
+    
+    duration_type = params[:duration_type] || params[:effect]&.dig(:duration_type)
+    effect.duration_type = duration_type if duration_type.present?
 
-    case params[:duration_type]
+    case duration_type
     when "end_of_round"
       effect.expires_on_round = @encounter.round_number
     when "end_of_turn"

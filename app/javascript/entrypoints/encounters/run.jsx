@@ -13,6 +13,8 @@ function readBootData(rootEl) {
   };
 }
 
+let rootInstance = null;
+
 function mount() {
   const rootEl = document.getElementById("combat-console-root");
   if (!rootEl) {
@@ -20,20 +22,42 @@ function mount() {
     return;
   }
 
+  // If we already have a root instance, unmount it first
+  if (rootInstance) {
+    try {
+      rootInstance.unmount();
+      rootInstance = null;
+    } catch (e) {
+      console.warn("CombatConsole: error unmounting previous instance", e);
+    }
+  }
+
   try {
     const boot = readBootData(rootEl);
     console.log("CombatConsole: mounting with boot data", boot);
 
-    createRoot(rootEl).render(<CombatConsole boot={boot} />);
+    rootInstance = createRoot(rootEl);
+    rootInstance.render(<CombatConsole boot={boot} />);
   } catch (error) {
     console.error("CombatConsole: error mounting", error);
     rootEl.innerHTML = `<p style="color: red;">Error loading combat console: ${error.message}</p>`;
   }
 }
 
+function tryMount() {
+  // Only mount if we're on a page with the combat console
+  if (document.getElementById("combat-console-root")) {
+    mount();
+  }
+}
+
 // Wait for DOM to be ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", mount);
+  document.addEventListener("DOMContentLoaded", tryMount);
 } else {
-  mount();
+  tryMount();
 }
+
+// Also mount on Turbo navigation events
+document.addEventListener("turbo:load", tryMount);
+document.addEventListener("turbo:frame-load", tryMount);
