@@ -22,7 +22,7 @@ module Encounters
         ordered_participants = @encounter.encounter_participants
                                           .where.not(state: ["removed", "dead"])
                                           .where("added_in_round IS NULL OR added_in_round <= ?", current_round)
-                                          .order(initiative_total: :desc, initiative_roll: :desc, id: :asc)
+                                          .order(initiative_total: :desc, initiative_mod: :desc, id: :asc)
                                           .to_a
         
         return result if ordered_participants.empty?

@@ -74,7 +74,7 @@ module Encounters
           .includes(:character)
           .where.not(state: ["removed", "dead"])
           .where("added_in_round IS NULL OR added_in_round <= ?", current_round)
-          .order(initiative_total: :desc, id: :asc)
+          .order(initiative_total: :desc, initiative_mod: :desc, id: :asc)
       end
 
       def dead_participants
@@ -90,7 +90,7 @@ module Encounters
           .encounter_participants
           .includes(:character)
           .where.not(state: ["removed", "dead"])
-          .order(initiative_total: :desc, id: :asc)
+          .order(initiative_total: :desc, initiative_mod: :desc, id: :asc)
       end
   
       def character_kind(character)

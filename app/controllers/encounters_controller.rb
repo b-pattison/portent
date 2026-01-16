@@ -167,7 +167,7 @@ class EncountersController < ApplicationController
       ordered_participants = @encounter.encounter_participants
                                         .where.not(state: ["removed", "dead"])
                                         .where.not(initiative_roll: nil)
-                                        .order(initiative_total: :desc, initiative_roll: :desc, id: :asc)
+                                        .order(initiative_total: :desc, initiative_mod: :desc, id: :asc)
       active_participant_id = ordered_participants.first&.id
     end
 
@@ -214,7 +214,7 @@ class EncountersController < ApplicationController
     return unless all_active.count == active_participants.count
     return if active_participants.empty?
 
-    ordered = active_participants.order(initiative_total: :desc, initiative_roll: :desc, id: :asc)
+    ordered = active_participants.order(initiative_total: :desc, initiative_mod: :desc, id: :asc)
     first_up = ordered.first
     return unless first_up
 

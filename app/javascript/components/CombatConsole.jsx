@@ -277,7 +277,7 @@ export default function CombatConsole({ boot }) {
     await advanceTurnInternal();
   }, [advancing, advanceTurnInternal]);
 
-  const resolveInterrupt = useCallback(async (passed) => {
+  const resolveInterrupt = useCallback(async (passed, nat20 = false, nat1 = false) => {
     if (!boot?.campaignId || !boot?.encounterId || !boot?.csrfToken || !interrupt) {
       return;
     }
@@ -299,7 +299,7 @@ export default function CombatConsole({ boot }) {
           Accept: "application/json",
         },
         credentials: "same-origin",
-        body: JSON.stringify({ passed }),
+        body: JSON.stringify({ passed, nat_20: nat20, nat_1: nat1 }),
       });
 
       if (!response.ok) {
@@ -782,6 +782,9 @@ export default function CombatConsole({ boot }) {
                               flexWrap: "wrap",
                               gap: 6,
                               marginTop: 4,
+                              width: "100%",
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
                             }}
                           >
                             {p.active_effects.map((effect, idx) => {
@@ -792,7 +795,7 @@ export default function CombatConsole({ boot }) {
                               const deathSaveSuccesses = effect.death_save_successes || 0;
                               const deathSaveFailures = effect.death_save_failures || 0;
                               return (
-                                <span key={idx}>
+                                <div key={idx} style={{ width: "100%", maxWidth: "100%" }}>
                                   <span
                                     style={{
                                       fontSize: "clamp(10px, 2.5vw, 12px)",
@@ -849,31 +852,35 @@ export default function CombatConsole({ boot }) {
                                     <div
                                       style={{
                                         marginTop: "8px",
-                                        padding: "8px 12px",
+                                        padding: "clamp(6px, 2vw, 8px) clamp(8px, 2.5vw, 12px)",
                                         backgroundColor: "rgba(197, 48, 48, 0.15)",
                                         borderRadius: 8,
                                         border: "1px solid rgba(197, 48, 48, 0.3)",
                                         display: "flex",
                                         flexDirection: "column",
-                                        gap: "8px",
+                                        gap: "clamp(6px, 1.5vw, 8px)",
+                                        width: "100%",
+                                        maxWidth: "100%",
+                                        boxSizing: "border-box",
                                       }}
                                     >
                                       <div
                                         style={{
                                           display: "flex",
                                           alignItems: "center",
-                                          gap: "8px",
-                                          fontSize: "clamp(11px, 2.5vw, 13px)",
+                                          gap: "clamp(4px, 1.5vw, 8px)",
+                                          fontSize: "clamp(10px, 2.5vw, 13px)",
+                                          flexWrap: "wrap",
                                         }}
                                       >
-                                        <span style={{ color: "#10b981", fontWeight: 600, minWidth: "70px" }}>Successes:</span>
-                                        <div style={{ display: "flex", gap: "4px" }}>
+                                        <span style={{ color: "#10b981", fontWeight: 600, minWidth: "clamp(60px, 15vw, 70px)", flexShrink: 0 }}>Successes:</span>
+                                        <div style={{ display: "flex", gap: "clamp(2px, 1vw, 4px)", flexShrink: 0 }}>
                                           {[1, 2, 3].map((num) => (
                                             <span
                                               key={num}
                                               style={{
-                                                width: "24px",
-                                                height: "24px",
+                                                width: "clamp(20px, 5vw, 24px)",
+                                                height: "clamp(20px, 5vw, 24px)",
                                                 borderRadius: "50%",
                                                 backgroundColor: num <= deathSaveSuccesses ? "#10b981" : "rgba(16, 185, 129, 0.2)",
                                                 border: `2px solid ${num <= deathSaveSuccesses ? "#10b981" : "rgba(16, 185, 129, 0.4)"}`,
@@ -882,7 +889,8 @@ export default function CombatConsole({ boot }) {
                                                 justifyContent: "center",
                                                 color: num <= deathSaveSuccesses ? "white" : "rgba(16, 185, 129, 0.6)",
                                                 fontWeight: 700,
-                                                fontSize: "14px",
+                                                fontSize: "clamp(12px, 3vw, 14px)",
+                                                flexShrink: 0,
                                               }}
                                             >
                                               {num <= deathSaveSuccesses ? "✓" : ""}
@@ -894,18 +902,19 @@ export default function CombatConsole({ boot }) {
                                         style={{
                                           display: "flex",
                                           alignItems: "center",
-                                          gap: "8px",
-                                          fontSize: "clamp(11px, 2.5vw, 13px)",
+                                          gap: "clamp(4px, 1.5vw, 8px)",
+                                          fontSize: "clamp(10px, 2.5vw, 13px)",
+                                          flexWrap: "wrap",
                                         }}
                                       >
-                                        <span style={{ color: "#ef4444", fontWeight: 600, minWidth: "70px" }}>Failures:</span>
-                                        <div style={{ display: "flex", gap: "4px" }}>
+                                        <span style={{ color: "#ef4444", fontWeight: 600, minWidth: "clamp(60px, 15vw, 70px)", flexShrink: 0 }}>Failures:</span>
+                                        <div style={{ display: "flex", gap: "clamp(2px, 1vw, 4px)", flexShrink: 0 }}>
                                           {[1, 2, 3].map((num) => (
                                             <span
                                               key={num}
                                               style={{
-                                                width: "24px",
-                                                height: "24px",
+                                                width: "clamp(20px, 5vw, 24px)",
+                                                height: "clamp(20px, 5vw, 24px)",
                                                 borderRadius: "50%",
                                                 backgroundColor: num <= deathSaveFailures ? "#ef4444" : "rgba(239, 68, 68, 0.2)",
                                                 border: `2px solid ${num <= deathSaveFailures ? "#ef4444" : "rgba(239, 68, 68, 0.4)"}`,
@@ -914,7 +923,8 @@ export default function CombatConsole({ boot }) {
                                                 justifyContent: "center",
                                                 color: num <= deathSaveFailures ? "white" : "rgba(239, 68, 68, 0.6)",
                                                 fontWeight: 700,
-                                                fontSize: "14px",
+                                                fontSize: "clamp(12px, 3vw, 14px)",
+                                                flexShrink: 0,
                                               }}
                                             >
                                               {num <= deathSaveFailures ? "✗" : ""}
@@ -924,7 +934,7 @@ export default function CombatConsole({ boot }) {
                                       </div>
                                     </div>
                                   )}
-                                </span>
+                                </div>
                               );
                             })}
                           </div>
@@ -1669,6 +1679,158 @@ export default function CombatConsole({ boot }) {
                 >
                   OK
                 </button>
+              ) : interrupt.is_death_save ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        width: "100%",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => resolveInterrupt(true)}
+                        style={{
+                          flex: 1,
+                          minWidth: "120px",
+                          padding: "14px 20px",
+                          fontSize: "clamp(14px, 3.5vw, 16px)",
+                          backgroundColor: "#28a745",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          minHeight: "48px",
+                          boxShadow: "0 4px 12px rgba(40, 167, 69, 0.3)",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.backgroundColor = "#218838";
+                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.boxShadow = "0 6px 16px rgba(40, 167, 69, 0.4)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.backgroundColor = "#28a745";
+                          e.target.style.transform = "translateY(0)";
+                          e.target.style.boxShadow = "0 4px 12px rgba(40, 167, 69, 0.3)";
+                        }}
+                      >
+                        Passed
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resolveInterrupt(false)}
+                        style={{
+                          flex: 1,
+                          minWidth: "120px",
+                          padding: "14px 20px",
+                          fontSize: "clamp(14px, 3.5vw, 16px)",
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          minHeight: "48px",
+                          boxShadow: "0 4px 12px rgba(220, 53, 69, 0.3)",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.backgroundColor = "#c82333";
+                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.boxShadow = "0 6px 16px rgba(220, 53, 69, 0.4)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.backgroundColor = "#dc3545";
+                          e.target.style.transform = "translateY(0)";
+                          e.target.style.boxShadow = "0 4px 12px rgba(220, 53, 69, 0.3)";
+                        }}
+                      >
+                        Failed
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        width: "100%",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => resolveInterrupt(false, true, false)}
+                        style={{
+                          flex: 1,
+                          minWidth: "120px",
+                          padding: "14px 20px",
+                          fontSize: "clamp(14px, 3.5vw, 16px)",
+                          backgroundColor: colors.gold,
+                          color: colors.deepBlue,
+                          border: "none",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          minHeight: "48px",
+                          boxShadow: `0 4px 12px rgba(212, 175, 55, 0.4)`,
+                          transition: "all 0.2s",
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.backgroundColor = colors.lightGold;
+                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.boxShadow = `0 6px 16px rgba(212, 175, 55, 0.5)`;
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.backgroundColor = colors.gold;
+                          e.target.style.transform = "translateY(0)";
+                          e.target.style.boxShadow = `0 4px 12px rgba(212, 175, 55, 0.4)`;
+                        }}
+                      >
+                        Nat 20
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resolveInterrupt(false, false, true)}
+                        style={{
+                          flex: 1,
+                          minWidth: "120px",
+                          padding: "14px 20px",
+                          fontSize: "clamp(14px, 3.5vw, 16px)",
+                          backgroundColor: "#423067",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          minHeight: "48px",
+                          boxShadow: "0 4px 12px rgba(66, 48, 103, 0.4)",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.backgroundColor = "#29204E";
+                          e.target.style.transform = "translateY(-2px)";
+                          e.target.style.boxShadow = "0 6px 16px rgba(66, 48, 103, 0.5)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.backgroundColor = "#423067";
+                          e.target.style.transform = "translateY(0)";
+                          e.target.style.boxShadow = "0 4px 12px rgba(66, 48, 103, 0.4)";
+                        }}
+                      >
+                        Nat 1
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <>
                   <button

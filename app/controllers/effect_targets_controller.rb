@@ -15,9 +15,26 @@ class EffectTargetsController < ApplicationController
     if effect.name == "Death Saves"
       was_active = @encounter.active_participant_id == participant.id
       
-      if passed
+      if params[:nat_20] == true || params[:nat_20] == "true"
+        @target.death_save_successes = 3
+        effect.end!
+        @target.end!
+      elsif params[:nat_1] == true || params[:nat_1] == "true"
+        @target.death_save_failures += 2
+        if @target.death_save_failures >= 3
+          participant.update!(state: "dead")
+          effect.end!
+          @target.end!
+          
+          if was_active && @encounter.status == "active"
+            Encounters::AdvanceTurnService.new(@encounter.reload).call!
+          end
+        else
+          @target.save!
+        end
+      elsif passed
         @target.death_save_successes += 1
-        if @target.death_save_successes >= 2
+        if @target.death_save_successes >= 3
           effect.end!
           @target.end!
         else
@@ -25,7 +42,7 @@ class EffectTargetsController < ApplicationController
         end
       else
         @target.death_save_failures += 1
-        if @target.death_save_failures >= 2
+        if @target.death_save_failures >= 3
           participant.update!(state: "dead")
           effect.end!
           @target.end!
