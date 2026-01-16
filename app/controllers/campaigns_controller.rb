@@ -34,6 +34,26 @@ class CampaignsController < ApplicationController
     @past_encounters_count = @campaign.encounters.ended.count
   end
 
+  def edit
+    @campaign = current_user.campaigns.find(params[:id])
+  end
+
+  def update
+    @campaign = current_user.campaigns.find(params[:id])
+    
+    if @campaign.update(campaign_params)
+      redirect_to campaign_path(@campaign), notice: "Campaign updated!"
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    @campaign = current_user.campaigns.find(params[:id])
+    @campaign.destroy
+    redirect_to campaigns_path, notice: "Campaign deleted successfully."
+  end
+
   def past_encounters
     @campaign = current_user.campaigns.find(params[:id])
     @past_encounters = @campaign.encounters.ended.order(created_at: :desc)

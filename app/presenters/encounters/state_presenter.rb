@@ -98,17 +98,29 @@ module Encounters
       end
 
       def active_effects_for_participant(participant)
-        effect_ids = EncounterEffectTarget
-                      .where(
-                        encounter_participant_id: participant.id,
-                        active: true,
-                        ended_at: nil
-                      )
-                      .pluck(:encounter_effect_id)
+        targets = EncounterEffectTarget
+                    .where(
+                      encounter_participant_id: participant.id,
+                      active: true,
+                      ended_at: nil
+                    )
+                    .includes(:encounter_effect)
+        
+        effect_ids = targets.pluck(:encounter_effect_id)
         
         encounter.encounter_effects
                  .where(id: effect_ids, ended_at: nil)
-                 .map { |effect| { id: effect.id, name: effect.name } }
+                 .map do |effect|
+                   target = targets.find { |t| t.encounter_effect_id == effect.id }
+                   effect_data = { id: effect.id, name: effect.name }
+                   
+                   if effect.name == "Death Saves" && target
+                     effect_data[:death_save_successes] = target.death_save_successes || 0
+                     effect_data[:death_save_failures] = target.death_save_failures || 0
+                   end
+                   
+                   effect_data
+                 end
       end
     end
   end

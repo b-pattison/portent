@@ -1,0 +1,29 @@
+<h1>Edit Campaign</h1>
+
+<% if @campaign.errors.any? %>
+  <div id="error_explanation" style="margin-bottom: 24px; padding: 16px; background: rgba(220, 53, 69, 0.1); border-radius: 8px; border: 1px solid rgba(220, 53, 69, 0.3);">
+    <h2 style="color: #dc3545; margin-top: 0;"><%= pluralize(@campaign.errors.count, "error") %> prohibited this campaign from being saved:</h2>
+    <ul style="margin-bottom: 0;">
+      <% @campaign.errors.each do |error| %>
+        <li style="color: #dc3545;"><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<div class="card">
+  <%= form_with model: [@campaign] do |f| %>
+    <div style="margin-bottom: 1rem;">
+      <%= f.label :name, "Campaign Name", style: "display: block; margin-bottom: 0.5rem; font-weight: 600;" %>
+      <%= f.text_field :name, 
+          placeholder: "Enter campaign name", 
+          required: true,
+          style: "width: 100%; max-width: 500px; padding: 12px; font-size: clamp(14px, 3.5vw, 16px); border-radius: 8px; border: 1px solid var(--light-purple)40; background: rgba(26, 31, 64, 0.4); color: var(--white);" %>
+    </div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+      <%= f.submit "Update Campaign", class: "btn btn-primary" %>
+      <%= link_to "Cancel", campaign_path(@campaign), class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

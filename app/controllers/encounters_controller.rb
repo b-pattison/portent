@@ -2,7 +2,7 @@ class EncountersController < ApplicationController
   before_action :authenticate_user!
   before_action :ensure_not_ended, only: %i[update_rolls add_combatant advance_turn]
   before_action :set_campaign
-  before_action :set_encounter, only: %i[show update_rolls add_combatant end_encounter state advance_turn ensure_not_ended]
+  before_action :set_encounter, only: %i[show update_rolls add_combatant end_encounter restore_encounter state advance_turn ensure_not_ended]
 
   def state
     render json: Encounters::StatePresenter.new(@encounter).as_json
@@ -146,10 +146,40 @@ class EncountersController < ApplicationController
   def end_encounter
     @encounter.update!(
       status: "ended",
+      last_active_participant_id: @encounter.active_participant_id,
       active_participant_id: nil
     )
 
     redirect_to campaign_path(@campaign), notice: "Encounter ended."
+  end
+
+  def restore_encounter
+    if @campaign.encounters.active.exists?
+      render json: { 
+        error: "Encounter already started. Please end current encounter to start a new one." 
+      }, status: :unprocessable_entity
+      return
+    end
+
+    # If last_active_participant_id is nil, find the first participant in initiative order
+    active_participant_id = @encounter.last_active_participant_id
+    if active_participant_id.nil?
+      ordered_participants = @encounter.encounter_participants
+                                        .where.not(state: ["removed", "dead"])
+                                        .where.not(initiative_roll: nil)
+                                        .order(initiative_total: :desc, initiative_roll: :desc, id: :asc)
+      active_participant_id = ordered_participants.first&.id
+    end
+
+    @encounter.update!(
+      status: "active",
+      active_participant_id: active_participant_id
+    )
+
+    render json: { 
+      success: true,
+      redirect_url: campaign_encounter_path(@campaign, @encounter)
+    }
   end
 
   def ensure_not_ended

@@ -12,6 +12,36 @@ class EffectTargetsController < ApplicationController
     passed = params[:passed] == true || params[:passed] == "true"
     requires_save = effect.save_ability.present?
 
+    if effect.name == "Death Saves"
+      was_active = @encounter.active_participant_id == participant.id
+      
+      if passed
+        @target.death_save_successes += 1
+        if @target.death_save_successes >= 2
+          effect.end!
+          @target.end!
+        else
+          @target.save!
+        end
+      else
+        @target.death_save_failures += 1
+        if @target.death_save_failures >= 2
+          participant.update!(state: "dead")
+          effect.end!
+          @target.end!
+          
+          if was_active && @encounter.status == "active"
+            Encounters::AdvanceTurnService.new(@encounter.reload).call!
+          end
+        else
+          @target.save!
+        end
+      end
+      
+      render json: Encounters::StatePresenter.new(@encounter.reload), status: :ok
+      return
+    end
+
     if !requires_save || !passed
       if effect.hp_delta != 0
       end

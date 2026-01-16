@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_15_030952) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_16_200143) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,6 +70,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_15_030952) do
     t.datetime "last_prompted_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "death_save_successes", default: 0, null: false
+    t.integer "death_save_failures", default: 0, null: false
     t.index ["encounter_effect_id", "encounter_participant_id"], name: "idx_effect_target_uniqueness", unique: true
     t.index ["encounter_effect_id"], name: "index_encounter_effect_targets_on_encounter_effect_id"
     t.index ["encounter_participant_id"], name: "index_encounter_effect_targets_on_encounter_participant_id"
@@ -115,8 +117,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_15_030952) do
     t.bigint "active_participant_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "last_active_participant_id"
     t.index ["active_participant_id"], name: "index_encounters_on_active_participant_id"
     t.index ["campaign_id"], name: "index_encounters_on_campaign_id"
+    t.index ["last_active_participant_id"], name: "index_encounters_on_last_active_participant_id"
   end
 
   create_table "users", force: :cascade do |t|

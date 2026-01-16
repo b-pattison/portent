@@ -9,7 +9,67 @@
   </div>
 <% end %>
 
-<h1><%= @campaign.name %></h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+  <h1 style="margin: 0;"><%= @campaign.name %></h1>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <%= link_to "Edit", edit_campaign_path(@campaign), class: "btn btn-secondary" %>
+    <button type="button" 
+            onclick="showDeleteModal()" 
+            class="btn btn-danger">
+      Delete
+    </button>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-campaign-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(26, 31, 58, 0.85); backdrop-filter: blur(8px); z-index: 1000; padding: 20px; align-items: center; justify-content: center;">
+  <div style="background: linear-gradient(135deg, #2d3561 0%, #6b46c1 100%); padding: clamp(20px, 5vw, 32px); border-radius: 20px; max-width: min(90vw, 500px); width: 100%; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(212, 175, 55, 0.4); border: 2px solid rgba(212, 175, 55, 0.6);">
+    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: clamp(20px, 4.5vw, 24px); font-weight: 700; color: #d4af37; text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3); text-align: center; font-family: 'Cinzel', serif;">
+      Delete Campaign
+    </h3>
+    <p style="font-size: clamp(14px, 3.5vw, 16px); line-height: 1.6; color: #ffffff; margin-bottom: 24px; text-align: center;">
+      Are you sure you want to delete <strong style="color: #a78bfa;"><%= @campaign.name %></strong>?
+      <br><br>
+      This will <strong style="color: #dc3545;">permanently delete</strong> all encounters, PCs, NPCs, and all associated data.
+      <br><br>
+      <strong style="color: #dc3545;">This action cannot be undone.</strong>
+    </p>
+    <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+      <%= button_to "Delete Campaign",
+          campaign_path(@campaign),
+          method: :delete,
+          data: { turbo_method: :delete },
+          class: "btn btn-danger",
+          style: "flex: 1; min-width: 120px; padding: 14px 20px; font-size: clamp(14px, 3.5vw, 16px); background-color: #dc3545; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; min-height: 48px; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); transition: all 0.2s;",
+          onmouseover: "this.style.backgroundColor='#c82333'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(220, 53, 69, 0.4)';",
+          onmouseout: "this.style.backgroundColor='#dc3545'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(220, 53, 69, 0.3)';" %>
+      <button type="button" 
+              onclick="hideDeleteModal()" 
+              style="flex: 1; min-width: 120px; padding: 14px 20px; font-size: clamp(14px, 3.5vw, 16px); background-color: #423067; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; min-height: 48px; box-shadow: 0 4px 12px rgba(66, 48, 103, 0.3); transition: all 0.2s;"
+              onmouseover="this.style.backgroundColor='#29204E'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(66, 48, 103, 0.4)';"
+              onmouseout="this.style.backgroundColor='#423067'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(66, 48, 103, 0.3)';">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showDeleteModal() {
+    document.getElementById('delete-campaign-modal').style.display = 'flex';
+  }
+
+  function hideDeleteModal() {
+    document.getElementById('delete-campaign-modal').style.display = 'none';
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('delete-campaign-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      hideDeleteModal();
+    }
+  });
+</script>
 
 <div class="card">
   <h2>Encounters</h2>

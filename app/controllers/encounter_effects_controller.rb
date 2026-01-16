@@ -31,7 +31,14 @@ class EncounterEffectsController < ApplicationController
   end
 
   def create
+    # Validate that at least one target is selected
+    if params[:target_ids].blank? || params[:target_ids].empty?
+      render json: { errors: ["Please select at least one character to affect."] }, status: :unprocessable_entity
+      return
+    end
+
     effect = @encounter.encounter_effects.build(effect_params)
+    effect.hp_delta = 0 if effect.hp_delta.nil?
     
     duration_type = params[:duration_type] || params[:effect]&.dig(:duration_type)
     effect.duration_type = duration_type if duration_type.present?

@@ -117,11 +117,98 @@ export default function CombatConsole({ boot }) {
         throw new Error(`Failed to mark participant as dead: ${response.status}`);
       }
 
-      // Reload state after marking as dead
-      await loadState();
+      const result = await response.json();
+      if (result.encounter && result.participants) {
+        setData({
+          encounter: result.encounter,
+          participants: result.participants || [],
+          dead_participants: result.dead_participants || []
+        });
+      } else {
+        await loadState();
+      }
     } catch (e) {
       console.error("CombatConsole: error marking participant as dead", e);
       setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [boot, loadState]);
+
+  const reviveParticipant = useCallback(async (participantId) => {
+    if (!boot?.campaignId || !boot?.encounterId || !boot?.csrfToken) {
+      console.error("CombatConsole: missing boot data for reviveParticipant");
+      return;
+    }
+
+    const url = `/campaigns/${boot.campaignId}/encounters/${boot.encounterId}/encounter_participants/${participantId}/restore`;
+    
+    try {
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": boot.csrfToken,
+          Accept: "application/json",
+        },
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to revive participant: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.encounter && result.participants) {
+        setData({
+          encounter: result.encounter,
+          participants: result.participants || [],
+          dead_participants: result.dead_participants || []
+        });
+      } else {
+        await loadState();
+      }
+    } catch (e) {
+      console.error("CombatConsole: error reviving participant", e);
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [boot, loadState]);
+
+  const startDeathSaves = useCallback(async (participantId) => {
+    if (!boot?.campaignId || !boot?.encounterId || !boot?.csrfToken) {
+      console.error("CombatConsole: missing boot data for startDeathSaves");
+      return;
+    }
+
+    const url = `/campaigns/${boot.campaignId}/encounters/${boot.encounterId}/encounter_participants/${participantId}/start_death_saves`;
+    
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": boot.csrfToken,
+          Accept: "application/json",
+        },
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to start death saves: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.encounter && result.participants) {
+        setData({
+          encounter: result.encounter,
+          participants: result.participants || [],
+          dead_participants: result.dead_participants || []
+        });
+      } else {
+        await loadState();
+      }
+    } catch (e) {
+      console.error("CombatConsole: error starting death saves", e);
+      alert(e instanceof Error ? e.message : String(e));
     }
   }, [boot, loadState]);
 
@@ -219,26 +306,40 @@ export default function CombatConsole({ boot }) {
         throw new Error(`Failed to resolve interrupt: ${response.status}`);
       }
 
+      const result = await response.json();
+      
+      const oldActiveParticipantId = encounter?.active_participant_id;
+      
+      if (result.encounter && result.participants) {
+        setData({
+          encounter: result.encounter,
+          participants: result.participants || [],
+          dead_participants: result.dead_participants || []
+        });
+      }
+
+      const activeParticipantDied = oldActiveParticipantId && 
+        result.dead_participants?.some(p => p.id === oldActiveParticipantId) &&
+        !result.participants?.some(p => p.id === oldActiveParticipantId);
+
       setInterrupt(null);
       
-      // If save failed, stop and wait for user to press "Advance Turn" again
       if (passed === false) {
         setAdvancing(false);
+        if (activeParticipantDied) {
+          await loadState();
+        }
         return;
       }
       
-      // If save passed, continue advancing turns
       let done = false;
       while (!done) {
         const result = await advanceTurnInternal();
         if (result === false) {
-          // Another interrupt occurred, stop looping and wait for user
-          // Don't reset advancing state - we're still processing, just waiting for user input
           break;
         }
         done = result === true;
       }
-      // If we exited the loop without an interrupt, we're done advancing
       if (done) {
         setAdvancing(false);
       }
@@ -496,6 +597,64 @@ export default function CombatConsole({ boot }) {
         </div>
       </header>
 
+      {/* Advance Turn button */}
+      <div
+        style={{
+          marginTop: "24px",
+          marginBottom: "32px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <button
+          type="button"
+          onClick={advanceTurn}
+          disabled={advancing || encounter.status !== "active"}
+          style={{
+            padding: "16px 32px",
+            fontSize: "clamp(16px, 4vw, 18px)",
+            backgroundColor:
+              advancing || encounter.status !== "active"
+                ? colors.darkGray
+                : colors.gold,
+            color:
+              advancing || encounter.status !== "active"
+                ? colors.lightGray
+                : colors.deepBlue,
+            border: "none",
+            borderRadius: 12,
+            cursor:
+              advancing || encounter.status !== "active"
+                ? "not-allowed"
+                : "pointer",
+            fontWeight: 700,
+            minHeight: "56px",
+            minWidth: "200px",
+            boxShadow:
+              advancing || encounter.status !== "active"
+                ? "none"
+                : `0 4px 20px rgba(212, 175, 55, 0.4)`,
+            transition: "all 0.3s",
+            letterSpacing: "0.5px",
+            fontFamily: "'Cinzel', serif",
+          }}
+          onMouseOver={(e) => {
+            if (!advancing && encounter.status === "active") {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = `0 6px 24px rgba(212, 175, 55, 0.5)`;
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!advancing && encounter.status === "active") {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = `0 4px 20px rgba(212, 175, 55, 0.4)`;
+            }
+          }}
+        >
+          {advancing ? "Advancing..." : "Advance Turn"}
+        </button>
+      </div>
+
       <section>
         <h2
           style={{
@@ -629,58 +788,141 @@ export default function CombatConsole({ boot }) {
                               const effectName =
                                 typeof effect === "string" ? effect : effect.name;
                               const effectId = typeof effect === "string" ? null : effect.id;
+                              const isDeathSave = effectName === "Death Saves";
+                              const deathSaveSuccesses = effect.death_save_successes || 0;
+                              const deathSaveFailures = effect.death_save_failures || 0;
                               return (
-                                <span
-                                  key={idx}
-                                  style={{
-                                    fontSize: "clamp(10px, 2.5vw, 12px)",
-                                    padding: "4px 8px",
-                                    backgroundColor: `${colors.lightPurple}30`,
-                                    color: colors.lavender,
-                                    borderRadius: 6,
-                                    border: `1px solid ${colors.lightPurple}60`,
-                                    fontWeight: 500,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                  }}
-                                >
-                                  {effectName}
-                                  {effectId && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeEffect(effectId);
-                                      }}
+                                <span key={idx}>
+                                  <span
+                                    style={{
+                                      fontSize: "clamp(10px, 2.5vw, 12px)",
+                                      padding: "4px 8px",
+                                      backgroundColor: isDeathSave ? "rgba(197, 48, 48, 0.3)" : `${colors.lightPurple}30`,
+                                      color: isDeathSave ? "#fca5a5" : colors.lavender,
+                                      borderRadius: 6,
+                                      border: isDeathSave ? "1px solid rgba(197, 48, 48, 0.6)" : `1px solid ${colors.lightPurple}60`,
+                                      fontWeight: 500,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 6,
+                                    }}
+                                  >
+                                    {effectName}
+                                    {effectId && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeEffect(effectId);
+                                        }}
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          color: isDeathSave ? "#fca5a5" : colors.lavender,
+                                          cursor: "pointer",
+                                          padding: 0,
+                                          margin: 0,
+                                          fontSize: "16px",
+                                          lineHeight: 1,
+                                          opacity: 0.7,
+                                          minWidth: "20px",
+                                          minHeight: "20px",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                        }}
+                                        onMouseOver={(e) => {
+                                          e.target.style.opacity = "1";
+                                          e.target.style.color = isDeathSave ? "#ef4444" : colors.gold;
+                                        }}
+                                        onMouseOut={(e) => {
+                                          e.target.style.opacity = "0.7";
+                                          e.target.style.color = isDeathSave ? "#fca5a5" : colors.lavender;
+                                        }}
+                                        title="Remove effect"
+                                      >
+                                        ×
+                                      </button>
+                                    )}
+                                  </span>
+                                  {isDeathSave && (
+                                    <div
                                       style={{
-                                        background: "none",
-                                        border: "none",
-                                        color: colors.lavender,
-                                        cursor: "pointer",
-                                        padding: 0,
-                                        margin: 0,
-                                        fontSize: "16px",
-                                        lineHeight: 1,
-                                        opacity: 0.7,
-                                        minWidth: "20px",
-                                        minHeight: "20px",
+                                        marginTop: "8px",
+                                        padding: "8px 12px",
+                                        backgroundColor: "rgba(197, 48, 48, 0.15)",
+                                        borderRadius: 8,
+                                        border: "1px solid rgba(197, 48, 48, 0.3)",
                                         display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
+                                        flexDirection: "column",
+                                        gap: "8px",
                                       }}
-                                      onMouseOver={(e) => {
-                                        e.target.style.opacity = "1";
-                                        e.target.style.color = colors.gold;
-                                      }}
-                                      onMouseOut={(e) => {
-                                        e.target.style.opacity = "0.7";
-                                        e.target.style.color = colors.lavender;
-                                      }}
-                                      title="Remove effect"
                                     >
-                                      ×
-                                    </button>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "8px",
+                                          fontSize: "clamp(11px, 2.5vw, 13px)",
+                                        }}
+                                      >
+                                        <span style={{ color: "#10b981", fontWeight: 600, minWidth: "70px" }}>Successes:</span>
+                                        <div style={{ display: "flex", gap: "4px" }}>
+                                          {[1, 2, 3].map((num) => (
+                                            <span
+                                              key={num}
+                                              style={{
+                                                width: "24px",
+                                                height: "24px",
+                                                borderRadius: "50%",
+                                                backgroundColor: num <= deathSaveSuccesses ? "#10b981" : "rgba(16, 185, 129, 0.2)",
+                                                border: `2px solid ${num <= deathSaveSuccesses ? "#10b981" : "rgba(16, 185, 129, 0.4)"}`,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: num <= deathSaveSuccesses ? "white" : "rgba(16, 185, 129, 0.6)",
+                                                fontWeight: 700,
+                                                fontSize: "14px",
+                                              }}
+                                            >
+                                              {num <= deathSaveSuccesses ? "✓" : ""}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "8px",
+                                          fontSize: "clamp(11px, 2.5vw, 13px)",
+                                        }}
+                                      >
+                                        <span style={{ color: "#ef4444", fontWeight: 600, minWidth: "70px" }}>Failures:</span>
+                                        <div style={{ display: "flex", gap: "4px" }}>
+                                          {[1, 2, 3].map((num) => (
+                                            <span
+                                              key={num}
+                                              style={{
+                                                width: "24px",
+                                                height: "24px",
+                                                borderRadius: "50%",
+                                                backgroundColor: num <= deathSaveFailures ? "#ef4444" : "rgba(239, 68, 68, 0.2)",
+                                                border: `2px solid ${num <= deathSaveFailures ? "#ef4444" : "rgba(239, 68, 68, 0.4)"}`,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: num <= deathSaveFailures ? "white" : "rgba(239, 68, 68, 0.6)",
+                                                fontWeight: 700,
+                                                fontSize: "14px",
+                                              }}
+                                            >
+                                              {num <= deathSaveFailures ? "✗" : ""}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
                                   )}
                                 </span>
                               );
@@ -724,35 +966,77 @@ export default function CombatConsole({ boot }) {
                           {p.initiative_total ?? "—"}
                         </strong>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => markAsDead(p.id)}
-                        style={{
-                          padding: "10px 16px",
-                          fontSize: "clamp(12px, 3vw, 14px)",
-                          backgroundColor: "#dc3545",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          fontWeight: 600,
-                          minHeight: "44px",
-                          boxShadow: "0 2px 8px rgba(220, 53, 69, 0.3)",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseOver={(e) => {
-                          e.target.style.backgroundColor = "#c82333";
-                          e.target.style.transform = "translateY(-1px)";
-                          e.target.style.boxShadow = "0 4px 12px rgba(220, 53, 69, 0.4)";
-                        }}
-                        onMouseOut={(e) => {
-                          e.target.style.backgroundColor = "#dc3545";
-                          e.target.style.transform = "translateY(0)";
-                          e.target.style.boxShadow = "0 2px 8px rgba(220, 53, 69, 0.3)";
-                        }}
-                      >
-                        Kill Combatant
-                      </button>
+                      {p.kind === "pc" && !(p.active_effects || []).some(effect => {
+                        const effectName = typeof effect === "string" ? effect : effect.name;
+                        return effectName === "Death Saves";
+                      }) && (
+                        <button
+                          type="button"
+                          onClick={() => startDeathSaves(p.id)}
+                          style={{
+                            padding: "10px 16px",
+                            fontSize: "clamp(12px, 3vw, 14px)",
+                            backgroundColor: "#3b82f6",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            minHeight: "44px",
+                            boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                            transition: "all 0.2s",
+                            opacity: 0.9,
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = "#2563eb";
+                            e.target.style.transform = "translateY(-1px)";
+                            e.target.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.4)";
+                            e.target.style.opacity = "1";
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = "#3b82f6";
+                            e.target.style.transform = "translateY(0)";
+                            e.target.style.boxShadow = "0 2px 8px rgba(59, 130, 246, 0.3)";
+                            e.target.style.opacity = "0.9";
+                          }}
+                        >
+                          Start Death Saves
+                        </button>
+                      )}
+                      {p.kind !== "pc" && (
+                        <button
+                          type="button"
+                          onClick={() => markAsDead(p.id)}
+                          style={{
+                            padding: "10px 16px",
+                            fontSize: "clamp(12px, 3vw, 14px)",
+                            backgroundColor: "#c53030",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            minHeight: "44px",
+                            boxShadow: "0 2px 8px rgba(197, 48, 48, 0.3)",
+                            transition: "all 0.2s",
+                            opacity: 0.9,
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = "#b91c1c";
+                            e.target.style.transform = "translateY(-1px)";
+                            e.target.style.boxShadow = "0 4px 12px rgba(197, 48, 48, 0.4)";
+                            e.target.style.opacity = "1";
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = "#c53030";
+                            e.target.style.transform = "translateY(0)";
+                            e.target.style.boxShadow = "0 2px 8px rgba(197, 48, 48, 0.3)";
+                            e.target.style.opacity = "0.9";
+                          }}
+                        >
+                          Death
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -889,16 +1173,17 @@ export default function CombatConsole({ boot }) {
                                       typeof effect === "string" ? effect : effect.name;
                                     const effectId =
                                       typeof effect === "string" ? null : effect.id;
+                                    const isDeathSave = effectName === "Death Saves";
                                     return (
                                       <span
                                         key={idx}
                                         style={{
                                           fontSize: "clamp(10px, 2.5vw, 12px)",
                                           padding: "4px 8px",
-                                          backgroundColor: `${colors.lightPurple}30`,
-                                          color: colors.lavender,
+                                          backgroundColor: isDeathSave ? "rgba(197, 48, 48, 0.3)" : `${colors.lightPurple}30`,
+                                          color: isDeathSave ? "#fca5a5" : colors.lavender,
                                           borderRadius: 6,
-                                          border: `1px solid ${colors.lightPurple}60`,
+                                          border: isDeathSave ? "1px solid rgba(197, 48, 48, 0.6)" : `1px solid ${colors.lightPurple}60`,
                                           fontWeight: 500,
                                           display: "inline-flex",
                                           alignItems: "center",
@@ -916,7 +1201,7 @@ export default function CombatConsole({ boot }) {
                                             style={{
                                               background: "none",
                                               border: "none",
-                                              color: colors.lavender,
+                                              color: isDeathSave ? "#fca5a5" : colors.lavender,
                                               cursor: "pointer",
                                               padding: 0,
                                               margin: 0,
@@ -931,11 +1216,11 @@ export default function CombatConsole({ boot }) {
                                             }}
                                             onMouseOver={(e) => {
                                               e.target.style.opacity = "1";
-                                              e.target.style.color = colors.gold;
+                                              e.target.style.color = isDeathSave ? "#ef4444" : colors.gold;
                                             }}
                                             onMouseOut={(e) => {
                                               e.target.style.opacity = "0.7";
-                                              e.target.style.color = colors.lavender;
+                                              e.target.style.color = isDeathSave ? "#fca5a5" : colors.lavender;
                                             }}
                                             title="Remove effect"
                                           >
@@ -984,37 +1269,77 @@ export default function CombatConsole({ boot }) {
                                 {p.initiative_total ?? "—"}
                               </strong>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => markAsDead(p.id)}
-                              style={{
-                                padding: "8px 14px",
-                                fontSize: "clamp(11px, 2.5vw, 13px)",
-                                backgroundColor: "#dc3545",
-                                color: "white",
-                                border: "none",
-                                borderRadius: 8,
-                                cursor: "pointer",
-                                fontWeight: 600,
-                                minHeight: "44px",
-                                boxShadow: "0 2px 8px rgba(220, 53, 69, 0.3)",
-                                transition: "all 0.2s",
-                              }}
-                              onMouseOver={(e) => {
-                                e.target.style.backgroundColor = "#c82333";
-                                e.target.style.transform = "translateY(-1px)";
-                                e.target.style.boxShadow =
-                                  "0 4px 12px rgba(220, 53, 69, 0.4)";
-                              }}
-                              onMouseOut={(e) => {
-                                e.target.style.backgroundColor = "#dc3545";
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow =
-                                  "0 2px 8px rgba(220, 53, 69, 0.3)";
-                              }}
-                            >
-                              Kill
-                            </button>
+                            {p.kind === "pc" && !(p.active_effects || []).some(effect => {
+                              const effectName = typeof effect === "string" ? effect : effect.name;
+                              return effectName === "Death Saves";
+                            }) && (
+                              <button
+                                type="button"
+                                onClick={() => startDeathSaves(p.id)}
+                                style={{
+                                  padding: "8px 14px",
+                                  fontSize: "clamp(11px, 2.5vw, 13px)",
+                                  backgroundColor: "#3b82f6",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                  minHeight: "44px",
+                                  boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                                  transition: "all 0.2s",
+                                  opacity: 0.9,
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.backgroundColor = "#2563eb";
+                                  e.target.style.transform = "translateY(-1px)";
+                                  e.target.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.4)";
+                                  e.target.style.opacity = "1";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.backgroundColor = "#3b82f6";
+                                  e.target.style.transform = "translateY(0)";
+                                  e.target.style.boxShadow = "0 2px 8px rgba(59, 130, 246, 0.3)";
+                                  e.target.style.opacity = "0.9";
+                                }}
+                              >
+                                Start Death Saves
+                              </button>
+                            )}
+                            {p.kind !== "pc" && (
+                              <button
+                                type="button"
+                                onClick={() => markAsDead(p.id)}
+                                style={{
+                                  padding: "8px 14px",
+                                  fontSize: "clamp(11px, 2.5vw, 13px)",
+                                  backgroundColor: "#c53030",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                  minHeight: "44px",
+                                  boxShadow: "0 2px 8px rgba(197, 48, 48, 0.3)",
+                                  transition: "all 0.2s",
+                                  opacity: 0.9,
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.backgroundColor = "#b91c1c";
+                                  e.target.style.transform = "translateY(-1px)";
+                                  e.target.style.boxShadow = "0 4px 12px rgba(197, 48, 48, 0.4)";
+                                  e.target.style.opacity = "1";
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.backgroundColor = "#c53030";
+                                  e.target.style.transform = "translateY(0)";
+                                  e.target.style.boxShadow = "0 2px 8px rgba(197, 48, 48, 0.3)";
+                                  e.target.style.opacity = "0.9";
+                                }}
+                              >
+                                Death
+                              </button>
+                            )}
                           </div>
                         </div>
                       </li>
@@ -1108,6 +1433,17 @@ export default function CombatConsole({ boot }) {
                         ({p.kind})
                       </span>
                     ) : null}
+                    {p.initiative_total != null && (
+                      <span
+                        style={{
+                          opacity: 0.6,
+                          fontSize: "clamp(11px, 2.5vw, 13px)",
+                          color: colors.lavender,
+                        }}
+                      >
+                        Init: {p.initiative_total}
+                      </span>
+                    )}
                     {p.active_effects && p.active_effects.length > 0 && (
                       <div
                         style={{
@@ -1121,16 +1457,17 @@ export default function CombatConsole({ boot }) {
                           const effectName =
                             typeof effect === "string" ? effect : effect.name;
                           const effectId = typeof effect === "string" ? null : effect.id;
+                          const isDeathSave = effectName === "Death Saves";
                           return (
                             <span
                               key={idx}
                               style={{
                                 fontSize: "clamp(9px, 2vw, 11px)",
                                 padding: "3px 7px",
-                                backgroundColor: `${colors.lightPurple}20`,
-                                color: colors.lavender,
+                                backgroundColor: isDeathSave ? "rgba(197, 48, 48, 0.2)" : `${colors.lightPurple}20`,
+                                color: isDeathSave ? "#fca5a5" : colors.lavender,
                                 borderRadius: 5,
-                                border: `1px solid ${colors.lightPurple}40`,
+                                border: isDeathSave ? "1px solid rgba(197, 48, 48, 0.4)" : `1px solid ${colors.lightPurple}40`,
                                 fontWeight: 500,
                                 opacity: 0.8,
                                 display: "inline-flex",
@@ -1149,7 +1486,7 @@ export default function CombatConsole({ boot }) {
                                   style={{
                                     background: "none",
                                     border: "none",
-                                    color: colors.lavender,
+                                    color: isDeathSave ? "#fca5a5" : colors.lavender,
                                     cursor: "pointer",
                                     padding: 0,
                                     margin: 0,
@@ -1164,11 +1501,11 @@ export default function CombatConsole({ boot }) {
                                   }}
                                   onMouseOver={(e) => {
                                     e.target.style.opacity = "1";
-                                    e.target.style.color = colors.gold;
+                                    e.target.style.color = isDeathSave ? "#ef4444" : colors.gold;
                                   }}
                                   onMouseOut={(e) => {
                                     e.target.style.opacity = "0.7";
-                                    e.target.style.color = colors.lavender;
+                                    e.target.style.color = isDeathSave ? "#fca5a5" : colors.lavender;
                                   }}
                                   title="Remove effect"
                                 >
@@ -1181,69 +1518,44 @@ export default function CombatConsole({ boot }) {
                       </div>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => reviveParticipant(p.id)}
+                    style={{
+                      padding: "8px 14px",
+                      fontSize: "clamp(11px, 2.5vw, 13px)",
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      minHeight: "44px",
+                      boxShadow: "0 2px 8px rgba(40, 167, 69, 0.3)",
+                      transition: "all 0.2s",
+                      opacity: 0.9,
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = "#218838";
+                      e.target.style.transform = "translateY(-1px)";
+                      e.target.style.boxShadow = "0 4px 12px rgba(40, 167, 69, 0.4)";
+                      e.target.style.opacity = "1";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = "#28a745";
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 2px 8px rgba(40, 167, 69, 0.3)";
+                      e.target.style.opacity = "0.9";
+                    }}
+                  >
+                    Revive
+                  </button>
                 </li>
               ))}
             </ul>
           </div>
         </section>
       )}
-
-      {/* Advance Turn button */}
-      <div
-        style={{
-          marginTop: "32px",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={advanceTurn}
-          disabled={advancing || encounter.status !== "active"}
-          style={{
-            padding: "16px 32px",
-            fontSize: "clamp(16px, 4vw, 18px)",
-            backgroundColor:
-              advancing || encounter.status !== "active"
-                ? colors.darkGray
-                : colors.gold,
-            color:
-              advancing || encounter.status !== "active"
-                ? colors.lightGray
-                : colors.deepBlue,
-            border: "none",
-            borderRadius: 12,
-            cursor:
-              advancing || encounter.status !== "active"
-                ? "not-allowed"
-                : "pointer",
-            fontWeight: 700,
-            minHeight: "56px",
-            minWidth: "200px",
-            boxShadow:
-              advancing || encounter.status !== "active"
-                ? "none"
-                : `0 4px 20px rgba(212, 175, 55, 0.4)`,
-            transition: "all 0.3s",
-            letterSpacing: "0.5px",
-            fontFamily: "'Cinzel', serif",
-          }}
-          onMouseOver={(e) => {
-            if (!advancing && encounter.status === "active") {
-              e.target.style.transform = "translateY(-2px)";
-              e.target.style.boxShadow = `0 6px 24px rgba(212, 175, 55, 0.5)`;
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!advancing && encounter.status === "active") {
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = `0 4px 20px rgba(212, 175, 55, 0.4)`;
-            }
-          }}
-        >
-          {advancing ? "Advancing..." : "Advance Turn"}
-        </button>
-      </div>
 
       {/* Interrupt popup */}
       {interrupt && (
@@ -1285,7 +1597,7 @@ export default function CombatConsole({ boot }) {
                 textAlign: "center",
               }}
             >
-              {interrupt.notification_only ? "Effect Active" : "Save Required"}
+              {interrupt.notification_only ? "Effect Active" : interrupt.is_death_save ? "Death Save" : "Save Required"}
             </h3>
             <p
               style={{
@@ -1300,6 +1612,10 @@ export default function CombatConsole({ boot }) {
                 <>
                   <strong style={{ color: colors.lavender }}>{interrupt.participant_name}</strong> is
                   affected by <strong style={{ color: colors.lavender }}>{interrupt.effect_name}</strong>.
+                </>
+              ) : interrupt.is_death_save ? (
+                <>
+                  <strong style={{ color: colors.lavender }}>{interrupt.participant_name}</strong> must make a death save.
                 </>
               ) : (
                 <>

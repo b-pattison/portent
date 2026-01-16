@@ -9,7 +9,7 @@ Rails.application.routes.draw do
     root to: "pages#home"
   end
 
-  resources :campaigns, only: %i[index create show] do
+  resources :campaigns, only: %i[index create show edit update destroy] do
     member do
       post :start_encounter
       get :past_encounters
@@ -23,6 +23,7 @@ Rails.application.routes.draw do
         post  :advance_turn
         patch :update_rolls
         patch :end_encounter
+        patch :restore_encounter
         get   :state
     
         # Effects
@@ -37,6 +38,7 @@ Rails.application.routes.draw do
           patch :remove
           patch :restore
           patch :update
+          post :start_death_saves
         end
       end
     end

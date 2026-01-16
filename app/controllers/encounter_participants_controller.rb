@@ -2,7 +2,42 @@ class EncounterParticipantsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_campaign
   before_action :set_encounter
-  before_action :set_participant
+  before_action :set_participant, except: [:start_death_saves]
+
+  def start_death_saves
+    participant = @encounter.encounter_participants.find(params[:id])
+    
+    unless participant.character.pc?
+      render json: { error: "Death saves can only be started for player characters." }, status: :unprocessable_entity
+      return
+    end
+
+    existing_death_saves = @encounter.encounter_effects
+                                     .where(name: "Death Saves", ended_at: nil)
+                                     .joins(:targets)
+                                     .where(encounter_effect_targets: { encounter_participant_id: participant.id, active: true, ended_at: nil })
+                                     .first
+
+    if existing_death_saves
+      render json: { error: "Death saves already active for this character." }, status: :unprocessable_entity
+      return
+    end
+
+    effect = @encounter.encounter_effects.create!(
+      name: "Death Saves",
+      note: "Death saving throws",
+      duration_type: "time",
+      duration_rounds: 999,
+      save_ability: "con"
+    )
+
+    target = effect.targets.create!(
+      encounter_participant: participant,
+      trigger_timing: "start_of_turn"
+    )
+
+    render json: Encounters::StatePresenter.new(@encounter.reload), status: :ok
+  end
 
   def update
     was_active = @encounter.active_participant_id == @participant.id
@@ -29,7 +64,7 @@ class EncounterParticipantsController < ApplicationController
 
   def restore
     @participant.update!(state: "alive")
-    redirect_to [@campaign, @encounter], notice: "Combatant restored."
+    render json: Encounters::StatePresenter.new(@encounter.reload), status: :ok
   end
 
   private
