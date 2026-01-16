@@ -195,10 +195,7 @@ export default function CombatConsole({ boot }) {
 
     if (interrupt.notification_only) {
       setInterrupt(null);
-      let done = false;
-      while (!done) {
-        done = await advanceTurnInternal();
-      }
+      setAdvancing(false);
       return;
     }
 
@@ -278,7 +275,7 @@ export default function CombatConsole({ boot }) {
       <div
         style={{
           minHeight: "100vh",
-          background: `linear-gradient(135deg, ${colors.deepBlue} 0%, ${colors.purple} 100%)`,
+          background: "transparent",
           padding: "20px 16px",
           color: colors.white,
         }}
@@ -319,7 +316,7 @@ export default function CombatConsole({ boot }) {
       <div
         style={{
           minHeight: "100vh",
-          background: `linear-gradient(135deg, ${colors.deepBlue} 0%, ${colors.purple} 100%)`,
+          background: "transparent",
           padding: "20px 16px",
           color: colors.white,
         }}
@@ -375,7 +372,7 @@ export default function CombatConsole({ boot }) {
       <div
         style={{
           minHeight: "100vh",
-          background: `linear-gradient(135deg, ${colors.deepBlue} 0%, ${colors.purple} 100%)`,
+          background: "transparent",
           padding: "20px 16px",
           color: colors.white,
         }}
@@ -429,7 +426,7 @@ export default function CombatConsole({ boot }) {
     <div
       style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${colors.deepBlue} 0%, ${colors.purple} 100%)`,
+        background: "transparent",
         padding: "16px",
         color: colors.white,
         paddingBottom: "40px",
@@ -462,6 +459,9 @@ export default function CombatConsole({ boot }) {
             flexWrap: "wrap",
             justifyContent: "center",
             gap: "8px 12px",
+            fontFamily: "'Cinzel', serif",
+            fontWeight: 500,
+            letterSpacing: "0.04em",
           }}
         >
           <span>Encounter #{encounter.id}</span>
@@ -519,7 +519,8 @@ export default function CombatConsole({ boot }) {
                     padding: "16px",
                     marginBottom: "20px",
                     borderRadius: 16,
-                    background: `linear-gradient(135deg, ${colors.gold}15 0%, ${colors.lightPurple}20 100%)`,
+                    background: `linear-gradient(135deg, rgba(214, 194, 122, 0.15) 0%, rgba(139, 92, 246, 0.2) 100%)`,
+                    backdropFilter: "blur(10px)",
                     border: `2px solid ${colors.gold}`,
                     boxShadow: `0 4px 20px rgba(212, 175, 55, 0.3), 0 0 0 1px ${colors.lightPurple}40`,
                     opacity: p.state && p.state !== "alive" ? 0.6 : 1,
@@ -570,8 +571,10 @@ export default function CombatConsole({ boot }) {
                         <span
                           style={{
                             fontSize: "clamp(16px, 4vw, 18px)",
-                            fontWeight: 600,
+                            fontWeight: 500,
                             color: colors.white,
+                            fontFamily: "'Cinzel', serif",
+                            letterSpacing: "0.04em",
                           }}
                         >
                           {p.name}
@@ -819,13 +822,15 @@ export default function CombatConsole({ boot }) {
                               }}
                             >
                               <span
-                                style={{
-                                  fontSize: "clamp(14px, 3.5vw, 16px)",
-                                  fontWeight: 500,
-                                  color: colors.white,
-                                }}
-                              >
-                                {p.name}
+                              style={{
+                                fontSize: "clamp(14px, 3.5vw, 16px)",
+                                fontWeight: 500,
+                                color: colors.white,
+                                fontFamily: "'Cinzel', serif",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              {p.name}
                                 {p.kind ? (
                                   <span
                                     style={{
@@ -1067,6 +1072,8 @@ export default function CombatConsole({ boot }) {
                       style={{
                         fontSize: "clamp(13px, 3vw, 15px)",
                         fontWeight: 500,
+                        fontFamily: "'Cinzel', serif",
+                        letterSpacing: "0.04em",
                       }}
                     >
                       {p.name}
@@ -1199,6 +1206,7 @@ export default function CombatConsole({ boot }) {
                 : `0 4px 20px rgba(212, 175, 55, 0.4)`,
             transition: "all 0.3s",
             letterSpacing: "0.5px",
+            fontFamily: "'Cinzel', serif",
           }}
           onMouseOver={(e) => {
             if (!advancing && encounter.status === "active") {

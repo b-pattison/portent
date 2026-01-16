@@ -29,7 +29,7 @@
     <small>PNG or JPG, max 2MB. Leave empty to keep current avatar.</small>
     
     <% if @character.avatar.attached? %>
-      <div style="margin-top: 16px; padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+      <div style="margin-top: 16px; padding: 16px; background: rgba(26, 31, 64, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
         <p style="margin-bottom: 12px; color: var(--lavender); font-weight: 500;">Current avatar:</p>
         <%= image_tag @character.avatar, alt: @character.name, class: "avatar", style: "width: clamp(80px, 15vw, 120px); height: clamp(80px, 15vw, 120px);" %>
       </div>

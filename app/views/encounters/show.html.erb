@@ -3,16 +3,16 @@
 <div class="card" style="margin-bottom: 24px;">
   <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
     <div>
-      <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px);">Status:</span>
-      <strong style="color: var(--gold); font-size: clamp(16px, 4vw, 18px); margin-left: 8px; text-transform: capitalize;">
+      <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px); font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">Status:</span>
+      <strong style="color: var(--gold); font-size: clamp(16px, 4vw, 18px); margin-left: 8px; text-transform: capitalize; font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">
         <%= @encounter.status %>
       </strong>
     </div>
     <% if @encounter.status == "active" && @encounter.active_participant.present? %>
       <span style="color: var(--lavender); opacity: 0.7;">•</span>
       <div>
-        <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px);">Up next:</span>
-        <strong style="color: var(--lavender); font-size: clamp(16px, 4vw, 18px); margin-left: 8px;">
+        <span style="opacity: 0.7; font-size: clamp(14px, 3.5vw, 16px); font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">Up next:</span>
+        <strong style="color: var(--lavender); font-size: clamp(16px, 4vw, 18px); margin-left: 8px; font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">
           <%= @encounter.active_participant.character.name %>
         </strong>
       </div>
@@ -23,7 +23,6 @@
 <% ended = (@encounter.status == "ended") %>
 
 <% if @encounter.status == "active" %>
-  <%# Show combat console when active (can be toggled with form) %>
   <div id="combat-console-wrapper">
     <div
       id="combat-console-root"
@@ -35,7 +34,6 @@
     </div>
   </div>
 
-  <%# Add combatant form (hidden by default) %>
   <div id="add-combatant-form-wrapper" style="display: none;">
     <div class="card">
       <h2>Add NPC/Enemy</h2>
@@ -48,23 +46,45 @@
                   data: { turbo: false },
                   multipart: true,
                   onsubmit: "return handleAddCombatantSubmit(event)" do %>
-      <%= label_tag "character[name]", "Name" %>
-      <%= text_field_tag "character[name]", nil, required: true %>
+      <% if @available_npcs.any? %>
+        <div>
+          <%= label_tag "add_type_active", "Add Type" %>
+          <%= radio_button_tag "add_type_active", "existing", false, id: "add_type_existing_active", onchange: "toggleAddCombatantType('active')" %>
+          <%= label_tag "add_type_existing_active", "Select from Saved NPCs", style: "margin-left: 8px; cursor: pointer;" %>
+          <br>
+          <%= radio_button_tag "add_type_active", "new", true, id: "add_type_new_active", onchange: "toggleAddCombatantType('active')", style: "margin-top: 8px;" %>
+          <%= label_tag "add_type_new_active", "Create New NPC", style: "margin-left: 8px; cursor: pointer;" %>
+        </div>
 
-      <%= label_tag "character[initiative_mod]", "Initiative mod" %>
-      <%= number_field_tag "character[initiative_mod]", 0, required: true %>
+        <div id="select_npc_active" style="display: none; margin-top: 1rem;">
+          <%= label_tag "character_id_active", "Select NPC" %>
+          <%= select_tag "character_id", 
+                         options_from_collection_for_select(@available_npcs, :id, :name),
+                         { prompt: "Choose an NPC...", id: "character_id_active", style: "width: 100%;", onchange: "updateInitiativeFromNPC(this)" } %>
+        </div>
+      <% end %>
 
-      <%= label_tag "character[initiative_roll]", "Initiative roll" %>
-      <%= number_field_tag "character[initiative_roll]", nil, min: 1, max: 30, step: 1, required: true %>
+      <div id="new_npc_active" <%= 'style="display: none;"'.html_safe if @available_npcs.any? %>>
+        <%= label_tag "character[name]", "Name" %>
+        <%= text_field_tag "character[name]", nil, placeholder: "Enter NPC name", required: !@available_npcs.any?, id: "character_name_active" %>
+
+        <%= label_tag "character[initiative_mod]", "Initiative mod" %>
+        <%= number_field_tag "character[initiative_mod]", 0, required: !@available_npcs.any?, id: "character_initiative_mod_active" %>
+
+        <div style="margin-top: 1rem;">
+          <%= label_tag "character[avatar]", "Avatar (optional)" %>
+          <%= file_field_tag "character[avatar]", 
+                            accept: "image/png,image/jpeg,image/jpg",
+                            style: "margin-top: 0.25rem;" %>
+          <small style="display: block; opacity: 0.7; margin-top: 0.25rem;">
+            PNG or JPG, max 2MB. If not provided, default avatar will be used.
+          </small>
+        </div>
+      </div>
 
       <div style="margin-top: 1rem;">
-        <%= label_tag "character[avatar]", "Avatar (optional)" %>
-        <%= file_field_tag "character[avatar]", 
-                          accept: "image/png,image/jpeg,image/jpg",
-                          style: "margin-top: 0.25rem;" %>
-        <small style="display: block; opacity: 0.7; margin-top: 0.25rem;">
-          PNG or JPG, max 2MB. If not provided, default avatar will be used.
-        </small>
+        <%= label_tag "character[initiative_roll]", "Initiative roll" %>
+        <%= number_field_tag "character[initiative_roll]", nil, min: 1, max: 30, step: 1, required: true %>
       </div>
 
       <div style="margin-top: 1rem;">
@@ -77,7 +97,6 @@
     </div>
   </div>
 
-  <%# Add Effect form (hidden by default) %>
   <div id="add-effect-form-wrapper" style="display: none;">
     <div class="card">
       <h2>Add Effect</h2>
@@ -101,15 +120,13 @@
           <%= radio_button_tag "duration_type", "end_of_turn", false, id: "duration_end_of_turn", onchange: "updateDurationFields()" %>
           <%= label_tag "duration_end_of_turn" do %>
             End of character's next turn
-            <% if @encounter.active_participant.present? %>
-              <span style="opacity: 0.7; font-weight: normal;">
+            <span id="end_of_turn_info" style="opacity: 0.7; font-weight: normal;">
+              <% if @encounter.active_participant.present? %>
                 (<%= @encounter.active_participant.character.name %>'s turn in round <%= @encounter.round_number + 1 %>)
-              </span>
-            <% else %>
-              <span style="opacity: 0.7; font-weight: normal;">
+              <% else %>
                 (Current active participant's next turn)
-              </span>
-            <% end %>
+              <% end %>
+            </span>
           <% end %>
         </div>
         <div>
@@ -175,8 +192,6 @@
 
   <%= vite_javascript_tag "entrypoints/encounters/run.jsx" %>
 <% else %>
-  <%# Setup form (disabled/locked when ended) %>
-
   <% if ended %>
     <div class="alert alert-info" style="margin-bottom: clamp(16px, 4vw, 24px);">
       This encounter has ended. Setup actions are locked.
@@ -185,7 +200,7 @@
 
 <%= form_with url: update_rolls_campaign_encounter_path(@campaign, @encounter),
               method: :patch,
-              data: { turbo: false } do %>
+              local: true do %>
     <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
       <table>
       <thead>
@@ -227,10 +242,12 @@
                   </button>
                 <% end %>
 
-                <%= link_to "Remove",
-                            remove_campaign_encounter_encounter_participant_path(@campaign, @encounter, p),
-                            data: { turbo_method: :patch, turbo_confirm: "Remove this combatant from the encounter?" },
-                            class: "btn btn-danger" %>
+                <%= button_to "Remove",
+                              remove_campaign_encounter_encounter_participant_path(@campaign, @encounter, p),
+                              method: :patch,
+                              data: { turbo_confirm: "Remove this combatant from the encounter?" },
+                              class: "btn btn-danger",
+                              form: { style: "display: inline; margin: 0; padding: 0; border: none; background: none;" } %>
               <% else %>
                 <span style="opacity: 0.6;">Locked</span>
               <% end %>
@@ -255,10 +272,75 @@
 
 <% unless ended %>
   <% if @encounter.status != "active" %>
-    <%# Show form directly for setup mode %>
-    <div class="card">
-      <h2>Add NPC/Enemy</h2>
-      <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), method: :post do %>
+    <% if @available_pcs.any? %>
+      <div class="card">
+        <h2>Add Saved PCs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
+          <% @available_pcs.each do |pc| %>
+            <div style="padding: 16px; background: rgba(26, 31, 64, 0.4); border-radius: 12px; border: 1px solid var(--antique-gold)30;">
+              <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                <% if pc.avatar.attached? %>
+                  <%= image_tag pc.avatar, alt: pc.name, class: "avatar" %>
+                <% else %>
+                  <%= image_tag "default_avatar.png", alt: pc.name, class: "avatar" %>
+                <% end %>
+                <div style="flex: 1; margin-left: 12px;">
+                  <div style="font-weight: 600; font-size: clamp(16px, 4vw, 18px); color: var(--moonlight-ivory); font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">
+                    <%= pc.name %>
+                  </div>
+                  <div style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7; color: var(--amethyst-dusk);">
+                    Init Mod: <%= pc.initiative_mod >= 0 ? "+" : "" %><%= pc.initiative_mod %>
+                  </div>
+                </div>
+              </div>
+              <%= button_to "Add to Initiative",
+                            add_combatant_campaign_encounter_path(@campaign, @encounter),
+                            method: :post,
+                            params: { character_id: pc.id },
+                            class: "btn btn-secondary",
+                            style: "width: 100%; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @available_npcs.any? %>
+      <div class="card" <%= 'style="margin-top: 20px;"'.html_safe if @available_pcs.any? %>>
+        <h2>Add Saved NPCs</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
+          <% @available_npcs.each do |npc| %>
+            <div style="padding: 16px; background: rgba(26, 31, 64, 0.4); border-radius: 12px; border: 1px solid var(--antique-gold)30;">
+              <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                <% if npc.avatar.attached? %>
+                  <%= image_tag npc.avatar, alt: npc.name, class: "avatar" %>
+                <% else %>
+                  <%= image_tag "default_avatar.png", alt: npc.name, class: "avatar" %>
+                <% end %>
+                <div style="flex: 1; margin-left: 12px;">
+                  <div style="font-weight: 600; font-size: clamp(16px, 4vw, 18px); color: var(--moonlight-ivory); font-family: 'Cinzel', serif; font-weight: 500; letter-spacing: 0.04em;">
+                    <%= npc.name %>
+                  </div>
+                  <div style="font-size: clamp(12px, 3vw, 14px); opacity: 0.7; color: var(--amethyst-dusk);">
+                    Init Mod: <%= npc.initiative_mod >= 0 ? "+" : "" %><%= npc.initiative_mod %>
+                  </div>
+                </div>
+              </div>
+              <%= button_to "Add to Initiative",
+                            add_combatant_campaign_encounter_path(@campaign, @encounter),
+                            method: :post,
+                            params: { character_id: npc.id },
+                            class: "btn btn-secondary",
+                            style: "width: 100%; padding: 8px 12px; font-size: clamp(12px, 3vw, 14px);" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="card" style="margin-top: 20px;">
+      <h2>Create New NPC/Enemy</h2>
+      <%= form_with url: add_combatant_campaign_encounter_path(@campaign, @encounter), method: :post, multipart: true do %>
         <div>
           <%= label_tag "character[name]", "Name" %>
           <%= text_field_tag "character[name]", nil, placeholder: "Enter NPC name", required: true %>
@@ -269,24 +351,29 @@
           <%= number_field_tag "character[initiative_mod]", 0, required: true %>
         </div>
 
+        <div>
+          <%= label_tag "character[avatar]", "Avatar (optional)" %>
+          <%= file_field_tag "character[avatar]", accept: "image/png,image/jpeg,image/jpg" %>
+          <small>PNG or JPG, max 2MB.</small>
+        </div>
+
         <%= submit_tag "Add", class: "btn btn-secondary" %>
       <% end %>
     </div>
   <% else %>
-    <%# Button to show form for active encounters %>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: clamp(20px, 5vw, 32px);">
       <button type="button" 
               class="btn btn-secondary" 
               onclick="showAddCombatantForm()"
               id="show-add-combatant-btn"
-              style="flex: 1; min-width: 150px;">
+              style="flex: 1; min-width: 150px; border: 1px solid rgba(214, 194, 122, 0.6) !important;">
         Add NPC/Enemy
       </button>
       <button type="button" 
               class="btn btn-secondary" 
               onclick="showAddEffectForm()"
               id="show-add-effect-btn"
-              style="flex: 1; min-width: 150px;">
+              style="flex: 1; min-width: 150px; border: 1px solid rgba(214, 194, 122, 0.6) !important;">
         Add Effect
       </button>
     </div>
@@ -398,6 +485,40 @@
     if (form) {
       form.addEventListener('submit', handleAddEffectSubmit, { once: false });
     }
+
+    updateEndOfTurnInfo();
+  }
+
+  function updateEndOfTurnInfo() {
+    const stateUrl = '<%= state_campaign_encounter_path(@campaign, @encounter) %>';
+    const infoSpan = document.getElementById('end_of_turn_info');
+    
+    if (!infoSpan) return;
+
+    fetch(stateUrl, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+      const encounter = data.encounter;
+      const participants = data.participants || [];
+      
+      if (encounter && encounter.active_participant_id) {
+        const activeParticipant = participants.find(p => p.id === encounter.active_participant_id);
+        if (activeParticipant) {
+          const nextRound = encounter.round + 1;
+          infoSpan.textContent = `(${activeParticipant.name}'s turn in round ${nextRound})`;
+        } else {
+          infoSpan.textContent = '(Current active participant\'s next turn)';
+        }
+      } else {
+        infoSpan.textContent = '(Current active participant\'s next turn)';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching encounter state:', error);
+    });
   }
 
   function cancelAddEffect() {
@@ -413,6 +534,50 @@
   function updateDurationFields() {
     const time = document.getElementById('duration_time').checked;
     document.getElementById('time_duration_wrapper').style.display = time ? 'block' : 'none';
+  }
+
+  const availableNPCs = <%= @available_npcs.map { |npc| { id: npc.id, name: npc.name, initiative_mod: npc.initiative_mod } }.to_json.html_safe %>;
+
+  function toggleAddCombatantType(mode) {
+    const isActive = mode === 'active';
+    const existingRadio = document.getElementById(isActive ? 'add_type_existing_active' : 'add_type_existing');
+    const newRadio = document.getElementById(isActive ? 'add_type_new_active' : 'add_type_new');
+    const selectDiv = document.getElementById(isActive ? 'select_npc_active' : 'select_npc_setup');
+    const newDiv = document.getElementById(isActive ? 'new_npc_active' : 'new_npc_setup');
+
+    if (!existingRadio || !newRadio || !selectDiv || !newDiv) return;
+
+    if (existingRadio.checked) {
+      selectDiv.style.display = 'block';
+      newDiv.style.display = 'none';
+      
+      const nameField = document.getElementById(isActive ? 'character_name_active' : 'character_name_setup');
+      const modField = document.getElementById(isActive ? 'character_initiative_mod_active' : 'character_initiative_mod_setup');
+      if (nameField) nameField.removeAttribute('required');
+      if (modField) modField.removeAttribute('required');
+    } else {
+      selectDiv.style.display = 'none';
+      newDiv.style.display = 'block';
+      
+      const nameField = document.getElementById(isActive ? 'character_name_active' : 'character_name_setup');
+      const modField = document.getElementById(isActive ? 'character_initiative_mod_active' : 'character_initiative_mod_setup');
+      if (nameField) nameField.setAttribute('required', 'required');
+      if (modField) modField.setAttribute('required', 'required');
+    }
+  }
+
+  function updateInitiativeFromNPC(selectElement) {
+    if (!selectElement || !selectElement.value) return;
+    
+    const npcId = parseInt(selectElement.value);
+    const npc = availableNPCs.find(n => n.id === npcId);
+    
+    if (npc) {
+      const modField = document.getElementById('character_initiative_mod_active');
+      if (modField) {
+        modField.value = npc.initiative_mod;
+      }
+    }
   }
 
   function updateTargetTiming(participantId) {

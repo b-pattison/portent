@@ -25,15 +25,24 @@ class EffectTargetsController < ApplicationController
       duration_expired = effect.expires_on_round && current_round > effect.expires_on_round
     when "end_of_turn"
       duration_expired = effect.expires_on_participant_id == participant.id &&
-                        effect.expires_on_round && current_round > effect.expires_on_round
+                        effect.expires_on_round && current_round == effect.expires_on_round
     when "time"
       duration_expired = effect.duration_rounds && effect.duration_rounds <= 0
     end
 
     if duration_expired
       effect.end!
-    elsif passed && requires_save
-      @target.end!
+    elsif requires_save
+      if @target.trigger_timing == "start_of_turn"
+        if passed
+        else
+          @target.end!
+        end
+      else
+        if passed
+          @target.end!
+        end
+      end
     end
 
     render json: { success: true }, status: :ok

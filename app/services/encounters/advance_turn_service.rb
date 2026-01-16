@@ -49,14 +49,14 @@ module Encounters
         end
 
         if current_active
-          check_and_end_effects_on_turn_end(current_active, current_round)
-          
           interrupt = check_end_of_turn_effects(current_active, current_round)
           if interrupt
             result[:status] = :interrupt
             result[:interrupt] = interrupt
             return result
           end
+          
+          check_and_end_effects_on_turn_end(current_active, new_round)
         end
 
         if current_active.nil?
@@ -176,12 +176,12 @@ module Encounters
       end
     end
 
-    def check_and_end_effects_on_turn_end(participant, current_round)
+    def check_and_end_effects_on_turn_end(participant, next_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
         effect.reload
         if effect.duration_type == "end_of_turn" && 
            effect.expires_on_participant_id == participant.id &&
-           effect.expires_on_round && current_round >= effect.expires_on_round
+           effect.expires_on_round && next_round == effect.expires_on_round
           effect.end!
         elsif effect.duration_type == "time"
           if effect.duration_rounds && effect.duration_rounds <= 0
@@ -194,11 +194,7 @@ module Encounters
     def check_and_end_effects_on_turn_start(participant, current_round)
       @encounter.encounter_effects.where(ended_at: nil).each do |effect|
         effect.reload
-        if effect.duration_type == "end_of_turn" && 
-           effect.expires_on_participant_id == participant.id &&
-           effect.expires_on_round && current_round >= effect.expires_on_round
-          effect.end!
-        elsif effect.duration_type == "time"
+        if effect.duration_type == "time"
           if effect.duration_rounds && effect.duration_rounds <= 0
             effect.end!
           end

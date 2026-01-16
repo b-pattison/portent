@@ -17,6 +17,21 @@ class EncounterParticipantsController < ApplicationController
     render json: { error: e.record.errors.full_messages }, status: :unprocessable_entity
   end
 
+  def remove
+    if @encounter.status != "active"
+      @participant.destroy!
+      redirect_to [@campaign, @encounter], notice: "Combatant removed from encounter."
+    else
+      @participant.update!(state: "removed")
+      redirect_to [@campaign, @encounter], notice: "Combatant removed."
+    end
+  end
+
+  def restore
+    @participant.update!(state: "alive")
+    redirect_to [@campaign, @encounter], notice: "Combatant restored."
+  end
+
   private
 
   def permitted_params

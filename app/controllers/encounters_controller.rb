@@ -44,6 +44,10 @@ class EncountersController < ApplicationController
     @new_combatant = @encounter.encounter_participants.new
     @missing_rolls = @participants.reject { |p| p.state == "removed" }
                                   .any? { |p| p.initiative_roll.nil? }
+    
+    existing_participant_ids = @encounter.encounter_participants.pluck(:character_id)
+    @available_npcs = @campaign.characters.npcs.permanent.where.not(id: existing_participant_ids)
+    @available_pcs = @campaign.characters.pcs.permanent.where.not(id: existing_participant_ids)
   end
 
   def update_rolls
@@ -93,15 +97,23 @@ class EncountersController < ApplicationController
   end
 
   def add_combatant
-    character = @campaign.characters.create!(
-      name: params.require(:character).fetch(:name),
-      pc: false,
-      temporary: true,
-      initiative_mod: params.require(:character).fetch(:initiative_mod).to_i
-    )
+    if params[:character_id].present?
+      character = @campaign.characters.find(params[:character_id])
+      unless character.permanent?
+        redirect_to [@campaign, @encounter], alert: "Invalid character selected."
+        return
+      end
+    else
+      character = @campaign.characters.create!(
+        name: params.require(:character).fetch(:name),
+        pc: false,
+        temporary: true,
+        initiative_mod: params.require(:character).fetch(:initiative_mod).to_i
+      )
 
-    if params[:character][:avatar].present?
-      character.avatar.attach(params[:character][:avatar])
+      if params[:character][:avatar].present?
+        character.avatar.attach(params[:character][:avatar])
+      end
     end
 
     was_active = @encounter.status == "active"
@@ -115,7 +127,7 @@ class EncountersController < ApplicationController
       added_in_round: added_in_round
     )
 
-    if params[:character][:initiative_roll].present?
+    if params[:character] && params[:character][:initiative_roll].present?
       roll = params[:character][:initiative_roll].to_i
       mod = participant.initiative_mod.to_i
       participant.update!(

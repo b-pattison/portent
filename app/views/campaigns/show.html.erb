@@ -36,7 +36,7 @@
     <h3 style="margin-top: 32px; margin-bottom: 16px;">Past Encounters</h3>
     <div style="display: flex; flex-direction: column; gap: 12px;">
       <% @past_encounters.each do |encounter| %>
-        <div style="padding: 12px; background: rgba(26, 31, 58, 0.4); border-radius: 8px; border: 1px solid var(--light-purple)30;">
+        <div style="padding: 12px; background: rgba(26, 31, 64, 0.4); border-radius: 8px; border: 1px solid var(--light-purple)30;">
           <%= link_to "Encounter from #{encounter.created_at.strftime("%B %d, %Y at %I:%M %p")}", 
                       campaign_encounter_path(@campaign, encounter),
                       style: "color: var(--lavender); text-decoration: none;" %>
@@ -66,7 +66,7 @@
   <% else %>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
       <% pcs.each do |character| %>
-        <div style="padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+        <div style="padding: 16px; background: rgba(26, 31, 64, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
           <div style="display: flex; align-items: center; margin-bottom: 12px;">
             <% if character.avatar.attached? %>
               <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
@@ -104,7 +104,7 @@
   <% else %>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px;">
       <% npcs.each do |character| %>
-        <div style="padding: 16px; background: rgba(26, 31, 58, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
+        <div style="padding: 16px; background: rgba(26, 31, 64, 0.4); border-radius: 12px; border: 1px solid var(--light-purple)30;">
           <div style="display: flex; align-items: center; margin-bottom: 12px;">
             <% if character.avatar.attached? %>
               <%= image_tag character.avatar, alt: character.name, class: "avatar" %>
