@@ -21,7 +21,7 @@ module Encounters
               kind: p.character.pc? ? "pc" : "npc",
               initiative_total: p.initiative_total,
               state: p.state,
-              avatar_url: p.character.avatar.attached? ? Rails.application.routes.url_helpers.url_for(p.character.avatar) : nil,
+              avatar_url: avatar_url_for(p.character),
               active_effects: active_effects_for_participant(p)
             }
           end,
@@ -31,7 +31,7 @@ module Encounters
               name: p.character.name,
               kind: p.character.pc? ? "pc" : "npc",
               state: p.state,
-              avatar_url: p.character.avatar.attached? ? Rails.application.routes.url_helpers.url_for(p.character.avatar) : nil,
+              avatar_url: avatar_url_for(p.character),
               active_effects: active_effects_for_participant(p)
             }
           end
@@ -95,6 +95,18 @@ module Encounters
   
       def character_kind(character)
         character.pc? ? "pc" : "npc"
+      end
+
+      def avatar_url_for(character)
+        return nil unless character.avatar.attached?
+        helpers = Rails.application.routes.url_helpers
+        opts = {}
+        opts[:host] = ENV["APP_HOST"] if ENV["APP_HOST"].present?
+        opts[:protocol] = "https" if opts[:host].present?
+        helpers.url_for(character.avatar, **opts)
+      rescue StandardError => e
+        Rails.logger.warn("[StatePresenter] avatar url_for failed: #{e.message}")
+        nil
       end
 
       def active_effects_for_participant(participant)
